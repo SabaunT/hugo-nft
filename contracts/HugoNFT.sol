@@ -21,7 +21,7 @@ contract HugoNFT is ERC721Enumerable {
     }
 
     // Script that is used to generate NFTs from traits
-    string public script;
+    string public nftGenerationScript;
 
     /**
      * Constants defining attributes ids in {HugoNFT-_traitsOfAttribute} mapping
@@ -50,15 +50,18 @@ contract HugoNFT is ERC721Enumerable {
     // rewrite with an initializer pattern
     constructor(
         string memory baseTokenURI,
-        uint256 attributesAmount
+        uint256 attributesAmount,
+        string memory script
     )
         ERC721("Hugo", "HUGO")
     {
         require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
+        require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
         require(attributesAmount > 0, "HugoNFT::attributes amount is 0");
 
         _baseTokenURI = baseTokenURI;
         _attributesAmount = attributesAmount;
+        nftGenerationScript = script;
     }
 
     // access by admin and shop

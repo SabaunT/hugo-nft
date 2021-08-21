@@ -72,7 +72,7 @@ contract('HugoNFT', async(accounts) => {
 
     before("Deploying NFT contract", async() => {
         // todo check with throws
-        nftContract = await HugoNFT.new(versionOneTokenURI, versionOneAttributesAmount, {from: owner});
+        nftContract = await HugoNFT.new(versionOneTokenURI, versionOneAttributesAmount, "some python script", {from: owner});
 
         // adding some traits
         await nftContract.addTrait(HEAD_ID, "Classical Hat", rarity.UNCOMMON);
