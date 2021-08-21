@@ -7,12 +7,16 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 /** TODO
 1. Roles
 2. events
+3. changeable names and descriptions for NFTs
 */
 contract HugoNFT is ERC721Enumerable {
+
+    enum Rarity{COMMON, UNCOMMON, RARE, LEGENDARY}
+
     struct Trait {
         uint256 traitId;
         string name;
-        uint256 rarity;
+        Rarity rarity;
         // attribute
     }
 
@@ -20,7 +24,7 @@ contract HugoNFT is ERC721Enumerable {
     string public script;
 
     /**
-     * Constants defining attributes numbers on {HugoNFT-traits} mapping.
+     * Constants defining attributes ids in {HugoNFT-_traitsOfAttribute} mapping
      */
     uint256 constant public HEAD_ID = 0;
     uint256 constant public GLASSES_ID = 1;
@@ -33,6 +37,10 @@ contract HugoNFT is ERC721Enumerable {
 
     // tokenId => seed. Seed is an array of trait ids.
     mapping(uint256 => uint256[]) private _tokenSeed;
+    // tokenId => name
+    mapping(uint256 => string) private _tokenName;
+    // tokenId => description
+    mapping(uint256 => string) private _tokenDescription;
     // attribute => traits of the attribute
     mapping(uint256 => Trait[]) private _traitsOfAttribute;
 
@@ -50,11 +58,22 @@ contract HugoNFT is ERC721Enumerable {
 
     // access by admin and shop
     // check whose beforeTransfer is called
-    function mint(address to, uint256[] calldata seed) external {
+    function mint(address to, uint256[] calldata seed, string memory name, string memory description) external {
         require(isValidSeed(seed), "HugoNFT::seed is invalid");
+        // checks for name and description
         uint256 newTokenId = totalSupply();
         super._safeMint(to, newTokenId);
+
         _tokenSeed[newTokenId] = seed;
+        _tokenName[newTokenId] = name;
+        _tokenDescription[newTokenId] = description;
+    }
+
+    // access by admin only
+    // check whose beforeTransfer is called
+    function mintExclusive(address to) external {
+        uint256 newTokenId = totalSupply();
+        super._safeMint(to, newTokenId);
     }
 
     // access by admin only
@@ -66,9 +85,18 @@ contract HugoNFT is ERC721Enumerable {
         _baseTokenURI = newURI;
     }
 
-    function getTokenSeed(uint256 id) external view returns(uint256[] memory) {
-        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
-        return _tokenSeed[id];
+    function getTokenInfo(uint256 tokenId)
+        external
+        view
+        returns (
+            string memory name,
+            string memory description,
+            uint256[] memory seed
+        )
+    {
+        name = getTokenName(tokenId);
+        description = getTokenDescription(tokenId);
+        seed = getTokenSeed(tokenId);
     }
 
     function getTraitsOfAttribute(uint256 attributeId) external view returns(Trait[] memory) {
@@ -96,10 +124,10 @@ contract HugoNFT is ERC721Enumerable {
 
     // access
     // call before initialize, otherwise ipfs hash will change
-    function addTrait(uint256 attributeId, string calldata name, uint256 rarity) public {
+    function addTrait(uint256 attributeId, string calldata name, Rarity rarity) public {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
-        // check for rarity?
+        // check for rarity
         Trait[] storage tA = _traitsOfAttribute[attributeId];
 
         uint256 newTraitId = tA.length;
@@ -108,13 +136,28 @@ contract HugoNFT is ERC721Enumerable {
         tA.push(newTrait);
     }
 
+    function getTokenSeed(uint256 id) public view returns(uint256[] memory) {
+        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+        return _tokenSeed[id];
+    }
+
+    function getTokenName(uint256 id) public view returns(string memory) {
+        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+        return _tokenName[id];
+    }
+
+    function getTokenDescription(uint256 id) public view returns(string memory) {
+        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+        return _tokenDescription[id];
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
 
     // return error
     // ids in seed should follow the "contract" of attributes layout [HEAD_ID, GLASSES_ID, BODY_ID, SHIRT_ID, SCARF_ID]
-    function isValidSeed(uint256[] calldata seed) internal returns (bool) {
+    function isValidSeed(uint256[] calldata seed) internal view returns (bool) {
         if (seed.length != _attributesAmount) return false;
 
         for (uint256 i = 0; i < _attributesAmount; i++ ) {

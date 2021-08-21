@@ -56,6 +56,13 @@ contract('HugoNFT', async(accounts) => {
     const SHIRT_ID = 3;
     const SCARF_ID = 4;
 
+    const rarity = {
+        COMMON: 0,
+        UNCOMMON: 1,
+        RARE: 2,
+        LEGENDARY: 3,
+    }
+
     const versionOneTokenURI = "someURI";
     const versionOneAttributesAmount = 5;
 
@@ -68,24 +75,34 @@ contract('HugoNFT', async(accounts) => {
         nftContract = await HugoNFT.new(versionOneTokenURI, versionOneAttributesAmount, {from: owner});
 
         // adding some traits
-        await nftContract.addTrait(HEAD_ID, "Classical Hat", 10);
-        await nftContract.addTrait(GLASSES_ID, "RayBan", 10);
-        await nftContract.addTrait(BODY_ID, "Muscular", 10);
-        await nftContract.addTrait(SHIRT_ID, "Tuxedo", 10);
-        await nftContract.addTrait(SCARF_ID, "Gryffindor", 10);
+        await nftContract.addTrait(HEAD_ID, "Classical Hat", rarity.UNCOMMON);
+        await nftContract.addTrait(GLASSES_ID, "RayBan", rarity.COMMON);
+        await nftContract.addTrait(BODY_ID, "Muscular", rarity.UNCOMMON);
+        await nftContract.addTrait(SHIRT_ID, "Tuxedo", rarity.UNCOMMON);
+        await nftContract.addTrait(SCARF_ID, "Gryffindor", rarity.RARE);
 
-        await nftContract.addTrait(HEAD_ID, "Punk", 10);
-        await nftContract.addTrait(GLASSES_ID, "Polaroid", 10);
-        await nftContract.addTrait(BODY_ID, "Thin", 10);
-        await nftContract.addTrait(SHIRT_ID, "Raped", 10);
-        await nftContract.addTrait(SCARF_ID, "Slytherin", 10);
+        await nftContract.addTrait(HEAD_ID, "Punk", rarity.UNCOMMON);
+        await nftContract.addTrait(GLASSES_ID, "Polaroid", rarity.RARE);
+        await nftContract.addTrait(BODY_ID, "Thin", rarity.COMMON);
+        await nftContract.addTrait(SHIRT_ID, "Raped", rarity.COMMON);
+        await nftContract.addTrait(SCARF_ID, "Slytherin", rarity.RARE);
     })
 
     it("Mints token for account1", async() => {
         // todo check with throws
-        await nftContract.mint(account1, [0, 0, 1, 1, 0]);
-        let seedOfToken0 = await nftContract.getTokenSeed(0);
-        console.log(seedOfToken0);
+        await nftContract.mint(account1, [0, 0, 1, 1, 0], "Cute Hugo", "Cute hugo minted for the test");
+        let tokenInfo = await nftContract.getTokenInfo(0);
+        console.log(tokenInfo.seed);
     })
+
+    it("Mints exclusive token for account2", async() => {
+        // todo check with throws
+        await nftContract.mintExclusive(account2);
+        let seedOfToken1 = await nftContract.getTokenSeed(1);
+        console.log(seedOfToken1); //empty
+    })
+
+
+
 
 })
