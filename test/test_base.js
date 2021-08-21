@@ -1,5 +1,6 @@
-contract('NAME', async(accounts) => {
-    
+const HugoNFT = artifacts.require("HugoNFT");
+
+contract('HugoNFT', async(accounts) => {
     let expectThrow = async (promise) => {
         try {
             await promise;
@@ -42,4 +43,19 @@ contract('NAME', async(accounts) => {
           })
         })
     }
+
+    const account1 = accounts[0];
+    const account2 = accounts[1];
+    const account3 = accounts[2];
+    const account4 = accounts[3];
+    const owner = accounts[4];
+
+    const zeroAddress = "0x0000000000000000000000000000000000000000";
+
+    let nftContract;
+
+    before("Deploying NFT contract", async() => {
+        nftContract = await HugoNFT.new("someTokenUri", {from: owner});
+        
+    })
 })
