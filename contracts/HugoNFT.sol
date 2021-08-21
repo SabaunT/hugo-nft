@@ -48,7 +48,12 @@ contract HugoNFT is ERC721Enumerable {
     string private _baseTokenURI;
 
     // rewrite with an initializer pattern
-    constructor(string memory baseTokenURI, uint256 attributesAmount) ERC721("Hugo", "HUGO") {
+    constructor(
+        string memory baseTokenURI,
+        uint256 attributesAmount
+    )
+        ERC721("Hugo", "HUGO")
+    {
         require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
         require(attributesAmount > 0, "HugoNFT::attributes amount is 0");
 
@@ -58,7 +63,14 @@ contract HugoNFT is ERC721Enumerable {
 
     // access by admin and shop
     // check whose beforeTransfer is called
-    function mint(address to, uint256[] calldata seed, string memory name, string memory description) external {
+    function mint(
+        address to,
+        uint256[] calldata seed,
+        string memory name,
+        string memory description
+    )
+        external
+    {
         require(isValidSeed(seed), "HugoNFT::seed is invalid");
         // checks for name and description
         uint256 newTokenId = totalSupply();
@@ -80,7 +92,10 @@ contract HugoNFT is ERC721Enumerable {
     function setTokenURI(string calldata newURI) external {
         // check for regex?
         require(bytes(newURI).length > 0, "HugoNFT::empty new URI string provided");
-        require(keccak256(abi.encodePacked(newURI)) != keccak256(abi.encodePacked(_baseTokenURI)), "HugoNFT::can't set same token URI");
+        require(
+            keccak256(abi.encodePacked(newURI)) != keccak256(abi.encodePacked(_baseTokenURI)),
+            "HugoNFT::can't set same token URI"
+        );
 
         _baseTokenURI = newURI;
     }
@@ -99,7 +114,11 @@ contract HugoNFT is ERC721Enumerable {
         seed = getTokenSeed(tokenId);
     }
 
-    function getTraitsOfAttribute(uint256 attributeId) external view returns(Trait[] memory) {
+    function getTraitsOfAttribute(uint256 attributeId)
+        external
+        view
+        returns(Trait[] memory)
+    {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         return _traitsOfAttribute[attributeId];
     }
@@ -109,7 +128,11 @@ contract HugoNFT is ERC721Enumerable {
      *
      * *Warning*. Never call on-chain. Call only using web3 "call" method!
      */
-    function tokensOfOwner(address account) external view returns (uint256[] memory ownerTokens) {
+    function tokensOfOwner(address account)
+        external
+        view
+        returns (uint256[] memory ownerTokens)
+    {
         uint256 tokenAmount = balanceOf(account);
         if (tokenAmount == 0) {
             return new uint256[](0);
