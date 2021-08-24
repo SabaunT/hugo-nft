@@ -9,6 +9,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 2. events
 3. changeable names and descriptions for NFTs
 4. attr hashes - discuss
+5. change traits info
 */
 contract HugoNFT is ERC721Enumerable {
 
@@ -156,10 +157,25 @@ contract HugoNFT is ERC721Enumerable {
     // access
     // call before initialize, otherwise ipfs hash will change
     // provide ID externally?
-    function addTrait(uint256 attributeId, string calldata name, Rarity rarity) public {
+    function addTrait(uint256 attributeId, uint256 traitId, string calldata name, Rarity rarity) public {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
+        require(traitId != 0, "HugoNFT::0 trait id is reserved for 'no attribute' in seed");
+
+        // This kind of contract has 2 pros:
+        // 1. could check whether the id is valid by comparing it with array length
+        // 2. trait id also tells about its position in Traits[]
+        // But there is a con: we should add traits sequentially
+        Trait[] storage traitsOfAttribute = _traitsOfAttribute[attributeId];
+        uint256 indexOfTheLastTrait = traitsOfAttribute.length > 0 ?
+            traitsOfAttribute.length - 1 : 0;
+        Trait storage lastTraitOfAttribute = traitsOfAttribute[indexOfTheLastTrait];
+
+        require(
+            lastTraitOfAttribute.traitId + 1 == traitId,
+            "HugoNFT::traits should be added sequentially"
+        );
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
-        // check for rarity
+
         Trait[] storage tA = _traitsOfAttribute[attributeId];
 
         uint256 newTraitId = tA.length;
@@ -193,7 +209,9 @@ contract HugoNFT is ERC721Enumerable {
         if (seed.length != _attributesAmount) return false;
 
         for (uint256 i = 0; i < _attributesAmount; i++ ) {
-            // todo find another way, because adding trait means providing it's id externally
+            // if IDs weren't provided sequentially, the only check we could do is
+            // by accessing a trait in some mapping, that stores info whether they are
+            // present or not.
             uint256 numOfTraits = _traitsOfAttribute[i].length;
             if (seed[i] >= numOfTraits) return false;
         }
