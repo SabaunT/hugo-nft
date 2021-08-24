@@ -8,10 +8,14 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 1. Roles
 2. events
 3. changeable names and descriptions for NFTs
-4. attr hashes - discuss
-5. change traits info
+5. update traits info
 */
 contract HugoNFT is ERC721Enumerable {
+
+    modifier whenCanMint() {
+        require(canMint, "HugoNFT::minting is currently unavailable");
+        _;
+    }
 
     enum Rarity{COMMON, UNCOMMON, RARE, LEGENDARY}
 
@@ -22,8 +26,18 @@ contract HugoNFT is ERC721Enumerable {
         // attribute
     }
 
+    struct AttributeIpfsHash {
+        string hash;
+        bool isValid;
+    }
+
     // Script that is used to generate NFTs from traits
     string public nftGenerationScript;
+
+    // The flag is set to false in several situations:
+    // 1. One of attributes has no traits
+    // 2. IPFS hash of attribute isn't set or is invalid (due to adding new trait)
+    bool canMint;
 
     /**
      * Constants defining attributes ids in {HugoNFT-_traitsOfAttribute} mapping
@@ -45,6 +59,8 @@ contract HugoNFT is ERC721Enumerable {
     mapping(uint256 => string) private _tokenDescription;
     // attribute => traits of the attribute
     mapping(uint256 => Trait[]) private _traitsOfAttribute;
+    // attribute => ipfs hash
+    mapping(uint256 => AttributeIpfsHash[]) private _attributeHashes;
 
     uint256 private _attributesAmount;
     string private _baseTokenURI;
@@ -63,6 +79,8 @@ contract HugoNFT is ERC721Enumerable {
         _baseTokenURI = baseTokenURI;
         _attributesAmount = attributesAmount;
         nftGenerationScript = script;
+
+        canMint = false;
     }
 
     // access by admin and shop
@@ -74,9 +92,10 @@ contract HugoNFT is ERC721Enumerable {
         string memory description
     )
         external
+        whenCanMint
     {
-        require(isValidSeed(seed), "HugoNFT::seed is invalid");
-        require(bytes(name).length <= 35, "HugoNFT::too long NFT name");
+        require(_isValidSeed(seed), "HugoNFT::seed is invalid");
+        require(bytes(name).length <= 60, "HugoNFT::too long NFT name");
         require(bytes(description) <= 250, "HugoNFT::too long NFT description");
         require(totalSupply() < supplyCap, "HugoNFT::supply cap was reached");
 
@@ -90,11 +109,61 @@ contract HugoNFT is ERC721Enumerable {
 
     // access by admin only
     // check whose beforeTransfer is called
-    // do we need name and description?
     // supplyCap a restriction here as well?
-    function mintExclusive(address to) external {
+    function mintExclusive(
+        address to,
+        string memory name,
+        string memory description
+    )
+        external
+        whenCanMint
+    {
+        require(bytes(name).length <= 60, "HugoNFT::too long NFT name");
+        require(bytes(description) <= 250, "HugoNFT::too long NFT description");
+        // todo - nope, they have another approach in Ids
         uint256 newTokenId = totalSupply();
         super._safeMint(to, newTokenId);
+    }
+
+    // access by admin only
+    function addNewAttribute() external {
+        _attributesAmount += 1;
+        if (canMint) canMint = false;
+    }
+
+    // access by admin only
+    function updateMultipleAttributesHashes(string[] memory ipfsHashes) external {
+        require(
+            ipfsHashes.length == _attributesAmount,
+            "HugoNFT::invalid hashes array length"
+        );
+        for (uint256 i = 0; i < ipfsHashes.length; i++) {
+            if (ipfsHashes[i] == 0) continue;
+            updateAttributeHash(i, ipfsHashes[i]);
+        }
+    }
+
+    // access by admin only
+    /**
+     * Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
+     */
+    function updateAttributeHash(uint256 attributeID, string memory ipfsHash) external {
+        require(bytes(ipfsHash).length == 46, "HugoNFT::invalid ipfs CID length");
+        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
+
+        AttributeIpfsHash[] storage attributeHashes = _attributeHashes[attributeID];
+        // todo криво, ведь если последнего нет, то че ты менять в нем собрался?
+        uint256 lastHashIndex = attributeHashes.length > 0 ?
+            traitsOfAttribute.length - 1 : 0;
+        AttributeIpfsHash storage lastHash = attributeHashes[lastHashIndex];
+        if (lastHash.isValid) {
+            lastHash.isValid = false;
+        }
+        attributeHashes.push(AttributeIpfsHash(ipfsHash, true));
+
+        if (!canMint && checkAllHashesAreValid()) {
+            canMint = true;
+        }
     }
 
     // access by admin only
@@ -109,54 +178,7 @@ contract HugoNFT is ERC721Enumerable {
         _baseTokenURI = newURI;
     }
 
-    function getTokenInfo(uint256 tokenId)
-        external
-        view
-        returns (
-            string memory name,
-            string memory description,
-            uint256[] memory seed
-        )
-    {
-        name = getTokenName(tokenId);
-        description = getTokenDescription(tokenId);
-        seed = getTokenSeed(tokenId);
-    }
-
-    function getTraitsOfAttribute(uint256 attributeId)
-        external
-        view
-        returns(Trait[] memory)
-    {
-        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
-        return _traitsOfAttribute[attributeId];
-    }
-
-    /**
-     * @dev Gets tokens owned by the `account`.
-     *
-     * *Warning*. Never call on-chain. Call only using web3 "call" method!
-     */
-    function tokensOfOwner(address account)
-        external
-        view
-        returns (uint256[] memory ownerTokens)
-    {
-        uint256 tokenAmount = balanceOf(account);
-        if (tokenAmount == 0) {
-            return new uint256[](0);
-        } else {
-            uint256[] memory output = new uint256[](tokenAmount);
-            for (uint256 index = 0; index < tokenAmount; index++) {
-                output[index] = tokenOfOwnerByIndex(account, index);
-            }
-            return output;
-        }
-    }
-
     // access
-    // call before initialize, otherwise ipfs hash will change
-    // provide ID externally?
     function addTrait(
         uint256 attributeId,
         uint256 traitId,
@@ -192,21 +214,10 @@ contract HugoNFT is ERC721Enumerable {
         Trait memory newTrait = Trait(newTraitId, name, rarity);
 
         tA.push(newTrait);
-    }
 
-    function getTokenSeed(uint256 id) public view returns(uint256[] memory) {
-        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
-        return _tokenSeed[id];
-    }
-
-    function getTokenName(uint256 id) public view returns(string memory) {
-        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
-        return _tokenName[id];
-    }
-
-    function getTokenDescription(uint256 id) public view returns(string memory) {
-        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
-        return _tokenDescription[id];
+        if (canMint) {
+            canMint = false;
+        }
     }
 
     function _baseURI() internal view override returns (string memory) {
@@ -215,7 +226,7 @@ contract HugoNFT is ERC721Enumerable {
 
     // return error
     // ids in seed should follow the "contract" of attributes layout [HEAD_ID, GLASSES_ID, BODY_ID, SHIRT_ID, SCARF_ID]
-    function isValidSeed(uint256[] calldata seed) internal view returns (bool) {
+    function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
         if (seed.length != _attributesAmount) return false;
 
         for (uint256 i = 0; i < _attributesAmount; i++ ) {
@@ -227,4 +238,75 @@ contract HugoNFT is ERC721Enumerable {
         }
         return true;
     }
+
+    function checkAllHashesAreValid() private view returns (bool) {
+        for (uint256 i = 0; i < _attributesAmount; i++) {
+            AttributeIpfsHash[] storage attributeHashes = _attributeHashes[i];
+            uint256 lastHashIndex = attributeHashes.length > 0 ?
+                traitsOfAttribute.length - 1 : 0;
+            AttributeIpfsHash storage lastHash = attributeHashes[lastHashIndex];
+            if (!lastHash.isValid) return false;
+        }
+        return true;
+    }
 }
+
+//    function getTokenInfo(uint256 tokenId)
+//        external
+//        view
+//        returns (
+//            string memory name,
+//            string memory description,
+//            uint256[] memory seed
+//        )
+//    {
+//        name = getTokenName(tokenId);
+//        description = getTokenDescription(tokenId);
+//        seed = getTokenSeed(tokenId);
+//    }
+//
+//    function getTraitsOfAttribute(uint256 attributeId)
+//        external
+//        view
+//        returns(Trait[] memory)
+//    {
+//        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
+//        return _traitsOfAttribute[attributeId];
+//    }
+
+//    function getTokenSeed(uint256 id) public view returns(uint256[] memory) {
+//        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+//        return _tokenSeed[id];
+//    }
+//
+//    function getTokenName(uint256 id) public view returns(string memory) {
+//        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+//        return _tokenName[id];
+//    }
+//
+//    function getTokenDescription(uint256 id) public view returns(string memory) {
+//        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
+//        return _tokenDescription[id];
+//    }
+
+//    /**
+//     * @dev Gets tokens owned by the `account`.
+//     *
+//     * *Warning*. Never call on-chain. Call only using web3 "call" method!
+//     */
+//    function tokensOfOwner(address account)
+//        external
+//        view
+//        returns (uint256[] memory ownerTokens)
+//    {
+//        uint256 tokenAmount = balanceOf(account);
+//        if (tokenAmount == 0) {
+//            return new uint256[](0);
+//        } else {
+//            uint256[] memory output = new uint256[](tokenAmount);
+//            for (uint256 index = 0; index < tokenAmount; index++) {
+//                output[index] = tokenOfOwnerByIndex(account, index);
+//            }
+//            return output;
+//        }
+//    }
