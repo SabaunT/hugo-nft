@@ -8,6 +8,7 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 1. Roles
 2. events
 3. changeable names and descriptions for NFTs
+4. attr hashes - discuss
 */
 contract HugoNFT is ERC721Enumerable {
 
@@ -47,7 +48,6 @@ contract HugoNFT is ERC721Enumerable {
     uint256 private _attributesAmount;
     string private _baseTokenURI;
 
-    // rewrite with an initializer pattern
     constructor(
         string memory baseTokenURI,
         uint256 attributesAmount,
@@ -75,7 +75,10 @@ contract HugoNFT is ERC721Enumerable {
         external
     {
         require(isValidSeed(seed), "HugoNFT::seed is invalid");
-        // checks for name and description
+        require(bytes(name).length <= 35, "HugoNFT::too long NFT name");
+        require(bytes(description) <= 250, "HugoNFT::too long NFT description");
+        require(totalSupply() < supplyCap, "HugoNFT::supply cap was reached");
+
         uint256 newTokenId = totalSupply();
         super._safeMint(to, newTokenId);
 
@@ -86,6 +89,8 @@ contract HugoNFT is ERC721Enumerable {
 
     // access by admin only
     // check whose beforeTransfer is called
+    // do we need name and description?
+    // supplyCap a restriction here as well?
     function mintExclusive(address to) external {
         uint256 newTokenId = totalSupply();
         super._safeMint(to, newTokenId);
@@ -150,6 +155,7 @@ contract HugoNFT is ERC721Enumerable {
 
     // access
     // call before initialize, otherwise ipfs hash will change
+    // provide ID externally?
     function addTrait(uint256 attributeId, string calldata name, Rarity rarity) public {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
@@ -187,6 +193,7 @@ contract HugoNFT is ERC721Enumerable {
         if (seed.length != _attributesAmount) return false;
 
         for (uint256 i = 0; i < _attributesAmount; i++ ) {
+            // todo find another way, because adding trait means providing it's id externally
             uint256 numOfTraits = _traitsOfAttribute[i].length;
             if (seed[i] >= numOfTraits) return false;
         }
