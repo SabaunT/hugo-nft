@@ -157,9 +157,19 @@ contract HugoNFT is ERC721Enumerable {
     // access
     // call before initialize, otherwise ipfs hash will change
     // provide ID externally?
-    function addTrait(uint256 attributeId, uint256 traitId, string calldata name, Rarity rarity) public {
+    function addTrait(
+        uint256 attributeId,
+        uint256 traitId,
+        string calldata name,
+        Rarity rarity
+    )
+        public
+    {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
-        require(traitId != 0, "HugoNFT::0 trait id is reserved for 'no attribute' in seed");
+        require(
+            traitId != 0,
+            "HugoNFT::0 trait id is reserved for 'no attribute' in seed"
+        );
 
         // This kind of contract has 2 pros:
         // 1. could check whether the id is valid by comparing it with array length
