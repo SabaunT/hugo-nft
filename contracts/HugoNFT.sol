@@ -6,20 +6,18 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./HugoNFTMetadataManager.sol";
 
 /** TODO
-5. update traits info
-6. loop boundaries
-7. duplicate traits
+0. TESTS
+1. update traits info/
+2. "info" contracts with fns used by HugoNFT users
+3. error model
+4. questions:
+- check for duplicate traits (?)
+- script update (?)
+- events needed (?)
+- pub function "isSeedUsed" - is version of seed considered?
 */
 
 contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
-    // Available to mint amount of auto-generated NFTs.
-    uint256 constant public generatedHugoCap = 10000;
-
-    string private _baseTokenURI;
-
-    // Amount of exclusive NFTs
-    uint256 private _exclusiveNFTsAmount;
-
     event Mint(address indexed to, uint256 indexed tokenId, string name);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
@@ -132,7 +130,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
 
     function changeNFTDescription(uint256 tokenId, string memory description) external {
         require(
-            ownerOf(tokenId) == msg.sender(), // todo when roles come change to func call
+            ownerOf(tokenId) == _msgSender(),
             "HugoNFT::token id isn't owned by msg sender"
         );
         require(
@@ -149,33 +147,33 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         emit ChangeDescription(tokenId, description);
     }
 
-    function isUsedSeed(uint256[] calldata seed) public view returns (bool) {
-        return _isUsedSeed[_getSeedHash(seed)];
-    }
-
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
 
+    // Checks seed length, validity of trait ids and whether it was used
     function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
-        bool isValidSeedLength = seed.length != _attributesAmount;
+        if (seed.length != _attributesAmount) return false;
         bool areValidTraitIds = _areValidTraitIds(seed);
-        bool isNewSeed = !isUsedSeed(seed);
-        return isValidSeedLength && areValidTraitIds && isNewSeed;
+        bool isNewSeed = !_isUsedSeed[_getSeedHash(seed)];
+        return areValidTraitIds && isNewSeed;
     }
 
+    // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
     function _areValidTraitIds(uint256[] calldata seed) private view returns (bool) {
-        for (uint256 i = 0; i < _attributesAmount; i++ ) {
+        for (uint256 i = 0; i < seed.length; i++ ) {
             // That's one of reasons why traits are added sequentially.
             // If IDs weren't provided sequentially, the only check we could do is
             // by accessing a trait in some mapping, that stores info whether the trait
             // with the provided id is present or not.
             uint256 numOfTraits = _traitsOfAttribute[i].length;
-            if (seed[i] >= numOfTraits) return false;
+            // trait ids start from 1.
+            if (seed[i] > numOfTraits) return false;
         }
         return true;
     }
 
+    // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
     function _getSeedHash(uint256[] calldata seed) private view returns (bytes32) {
         bytes memory seedBytes = _traitIdToBytes(seed[0]);
         for (uint256 i = 1; i < seed.length; i++) {
@@ -185,7 +183,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         return keccak256(seedBytes);
     }
 
-    // move to utils
+    // todo move to utils
     function _traitIdToBytes(uint256 traitId) private view returns (bytes) {
         bytes32 traitIdBytes32 = bytes32(traitId);
         bytes memory traitIdBytes = new bytes(32);

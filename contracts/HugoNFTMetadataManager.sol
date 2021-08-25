@@ -6,13 +6,6 @@ import "./HugoNFTStorage.sol";
 
 // Management for attributes, traits and hashes - all are named as meta-data.
 contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
-
-    // The flag that indicates whether main contract procedures (minting) can work.
-    // It is set to false in several situations:
-    // 1. One of attributes has no traits
-    // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
-    bool isPaused;
-
     event AddNewAttribute(uint256 indexed newAttributeId);
     event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name);
     event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
@@ -89,9 +82,14 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
+            traitIds.length <= MAX_ADDING_TRAITS,
+            "HugoNFT::adding traits number exceeds prohibited amount"
+        );
+        require(
             traitIds.length == names.length && names.length == rarities.length,
             "HugoNFT::unequal lengths of trait inner data arrays"
         );
+
         for (uint256 i = 0; i < traitIds.length; i++) {
             addTrait(attributeId, traitIds[i], names[i], rarities[i]);
         }

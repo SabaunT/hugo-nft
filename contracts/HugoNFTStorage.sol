@@ -8,12 +8,27 @@ import "./HugoNFTTypes.sol";
  * 3. Script should be changed in attribute manager
  */
 contract HugoNFTStorage is HugoNFTTypes {
+    // The flag that indicates whether main contract procedures (minting) can work.
+    // It is set to false in several situations:
+    // 1. One of attributes has no traits
+    // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
+    bool isPaused;
+
+    // Available to mint amount of auto-generated NFTs.
+    uint256 public constant generatedHugoCap = 10000;
+
     bytes32 public constant SHOP_ROLE = keccak256("SHOP_ROLE");
     bytes32 public constant NFT_ADMIN_ROLE = keccak256("NFT_ADMIN_ROLE");
 
     string internal constant EMPTY_IPFS_CID_STRING = "";
     // Length of the CID in base58 representation
     uint256 internal constant IPFS_CID_BYTES_LENGTH = 46;
+    uint256 internal constant MAX_ADDING_TRAITS = 25;
+
+    string internal _baseTokenURI;
+
+    // Amount of exclusive NFTs
+    uint256 internal _exclusiveNFTsAmount;
 
     // Script that is used to generate NFTs from traits
     Script[] nftGenerationScripts;
