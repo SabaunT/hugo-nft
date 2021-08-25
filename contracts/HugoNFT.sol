@@ -7,7 +7,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 /** TODO
 1. Roles
 2. events
-3. changeable names and descriptions for NFTs
 5. update traits info
 6. loop boundaries
 7. duplicate traits
@@ -36,16 +35,16 @@ contract HugoNFTTypes {
         bool isValid;
     }
 
-    // todo not used
-    struct GeneratedHugo {
+    struct GeneratedNFT {
         uint256 tokenId;
+        // Seed is an array of trait ids.
+        // A 0 value of token id is reserved for "no attribute" in the seed array
         uint256[] seed;
         string name;
         string description;
     }
 
-    // todo not used
-    struct ExclusiveHugo {
+    struct ExclusiveNFT {
         uint256 tokenId;
         string name;
         string description;
@@ -70,9 +69,11 @@ contract HugoNFTStorage is HugoNFTTypes {
     // amount of attributes used to generate NFT
     uint256 internal _attributesAmount;
 
-    // token id => seed. Seed is an array of trait ids.
-    // A 0 value of token id is reserved for "no attribute" in the seed array
-    mapping(uint256 => uint256[]) internal _tokenSeed;
+    // token id => generated hugo.
+    mapping(uint256 => GeneratedNFT) internal _generatedNFTs;
+
+    // token id => exclusive hugo.
+    mapping(uint256 => ExclusiveNFT) internal _exclusiveNFTs;
 
     // keccak256 of seed => boolean. Shows whether seed was used or not.
     mapping(bytes32 => bool) internal _isUsedSeed;
@@ -84,6 +85,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     mapping(uint256 => AttributeIpfsCID[]) internal _attributeCIDs;
 }
 
+// Management for attributes, traits and hashes - all are named as meta-data.
 contract HugoNFTMetadataManager is HugoNFTStorage {
 
     // The flag that indicates whether main contract procedures (minting) can work.
@@ -243,16 +245,23 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         whenIsNotPaused
     {
         require(_isValidSeed(seed), "HugoNFT::seed is invalid");
-        require(bytes(name).length <= 75, "HugoNFT::too long NFT name");
-        require(bytes(description).length <= 300, "HugoNFT::too long NFT description");
         require(
-            getGeneratedHugoAmount() < generatedHugoCap,
+            bytes(name).length > 0 && bytes(name).length <= 75,
+            "HugoNFT::invalid NFT name length"
+        );
+        require(
+            bytes(description).length > 0 && bytes(description).length <= 300,
+            "HugoNFT::invalid NFT description length"
+        );
+        require(
+            _getGeneratedHugoAmount() < generatedHugoCap,
             "HugoNFT::supply cap was reached"
         );
 
-        // todo set NFT data (name and descr)
-        uint256 newTokenId = getNewIdForGeneratedHugo();
+        uint256 newTokenId = _getNewIdForGeneratedHugo();
         super._safeMint(to, newTokenId);
+
+        _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
     }
 
     // access by admin only
@@ -266,12 +275,53 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         external
         whenIsNotPaused
     {
-        require(bytes(name).length <= 75, "HugoNFT::too long NFT name");
-        require(bytes(description) <= 300, "HugoNFT::too long NFT description");
+        require(
+            bytes(name).length > 0 && bytes(name).length <= 75,
+            "HugoNFT::invalid NFT name length"
+        );
+        require(
+            bytes(description).length > 0 && bytes(description).length <= 300,
+            "HugoNFT::invalid NFT description length"
+        );
 
-        uint256 newTokenId = getNewIdForExclusiveHugo();
+        uint256 newTokenId = _getNewIdForExclusiveHugo();
         super._safeMint(to, newTokenId);
         _exclusiveNFTsAmount += 1;
+
+        _exclusiveNFTs[newTokenId] = ExclusiveNFT(newTokenId, name, description);
+    }
+
+    function changeNFTName(uint256 tokenId, string memory name) external {
+        require(
+            ownerOf(tokenId) == msg.sender(), // todo when roles come change to func call
+            "HugoNFT::token id isn't owned by msg sender"
+        );
+        require(
+            bytes(name).length > 0 && bytes(name).length <= 75,
+            "HugoNFT::invalid NFT name length"
+        );
+
+        if (_isIdOfGeneratedNFT(tokenId)) {
+            _generatedNFTs[tokenId].name = name;
+        } else {
+            _exclusiveNFTs[tokenId].name = name;
+        }
+    }
+    function changeNFTDescription(uint256 tokenId, string memory description) external {
+        require(
+            ownerOf(tokenId) == msg.sender(), // todo when roles come change to func call
+            "HugoNFT::token id isn't owned by msg sender"
+        );
+        require(
+            bytes(description).length > 0 && bytes(description).length <= 300,
+            "HugoNFT::invalid NFT description length"
+        );
+
+        if (_isIdOfGeneratedNFT(tokenId)) {
+            _generatedNFTs[tokenId].description = description;
+        } else {
+            _exclusiveNFTs[tokenId].description = description;
+        }
     }
 
     function isUsedSeed(uint256[] calldata seed) public view returns (bool) {
@@ -302,7 +352,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     }
 
     function _getSeedHash(uint256[] calldata seed) private view returns (bytes32) {
-        bytes memory seedBytes = traitIdToBytes(seed[0]);
+        bytes memory seedBytes = _traitIdToBytes(seed[0]);
         for (uint256 i = 1; i < seed.length; i++) {
             uint256 traitId = seed[i];
             seedBytes = bytes.concat(seedBytes, bytes32(traitId));
@@ -311,7 +361,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     }
 
     // move to utils
-    function traitIdToBytes(uint256 traitId) private view returns (bytes) {
+    function _traitIdToBytes(uint256 traitId) private view returns (bytes) {
         bytes32 traitIdBytes32 = bytes32(traitId);
         bytes memory traitIdBytes = new bytes(32);
         for (uint256 i = 0; i < 32; i++) {
@@ -323,23 +373,25 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     // Ids are from 0 to 9999. All in all, 10'000 generated hugo NFTs.
     // A check whether an NFT could be minted with a valid id is done
     // in the {HugoNFT-mint}.
-    function getNewIdForGeneratedHugo() private view returns (uint256) {
-        return getGeneratedHugoAmount();
+    function _getNewIdForGeneratedHugo() private view returns (uint256) {
+        return _getGeneratedHugoAmount();
     }
 
-    function getGeneratedHugoAmount() private view returns (uint256) {
+    function _getGeneratedHugoAmount() private view returns (uint256) {
         return totalSupply() - _exclusiveNFTsAmount;
     }
 
     // Ids are from 10'000 and etc.
-    function getNewIdForExclusiveHugo() private view returns (uint256) {
+    function _getNewIdForExclusiveHugo() private view returns (uint256) {
         return generatedHugoCap + _exclusiveNFTsAmount;
+    }
+
+    function _isIdOfGeneratedNFT(uint256 tokenId) private view returns (uint256) {
+        return tokenId < generatedHugoCap;
     }
 }
 
 //contract HugoNFT is ERC721Enumerable {
-//
-//    bool isPaused;
 //
 //    /**
 //     * Constants defining attributes ids in {HugoNFT-_traitsOfAttribute} mapping
@@ -349,12 +401,6 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
 //    uint256 constant public BODY_ID = 2;
 //    uint256 constant public SHIRT_ID = 3;
 //    uint256 constant public SCARF_ID = 4;
-//
-//
-//    string private _baseTokenURI;
-//
-//
-//
 //
 //    // access by admin only
 //    function setTokenURI(string calldata newURI) external {
