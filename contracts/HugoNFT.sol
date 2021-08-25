@@ -9,6 +9,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 2. events
 3. changeable names and descriptions for NFTs
 5. update traits info
+6. loop boundaries
+7. duplicate traits
 */
 
 /**
@@ -40,7 +42,7 @@ contract HugoNFTTypes {
  * 2. Getting name, description (and info) from storage
  * 3. Script should be changed in attribute manager
  */
-// There is a contract with order of values in seeds, cids, and such - the layout is
+// There is a contract in order of values in seeds, cids, and such - the layout is
 // in accordance to the following order of attributes [HEAD_ID, GLASSES_ID, BODY_ID, SHIRT_ID, SCARF_ID]
 contract HugoNFTStorage is HugoNFTTypes {
     string internal constant EMPTY_IPFS_CID_STRING = "";
@@ -54,7 +56,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     uint256 internal _attributesAmount;
 
     // token id => seed. Seed is an array of trait ids.
-    // token id = 0 is reserved for "no attribute" in the seed array
+    // A 0 value of token id is reserved for "no attribute" in the seed array
     mapping(uint256 => uint256[]) internal _tokenSeed;
 
     // attribute id => traits of the attribute
@@ -73,14 +75,21 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
     bool isPaused;
 
     modifier whenIsNotPaused() {
-        require(canMint, "HugoNFT::calling action in a paused state");
+        require(!isPaused, "HugoNFT::calling action in a paused state");
         _;
     }
 
     // todo access by admin only
-    function addNewAttribute() external {
+    function addNewAttributeAndTraits(
+        uint256[] memory traitIds,
+        string[] memory names,
+        Rarity[] memory rarities
+    )
+        external
+    {
+        uint256 newAttributeId = _attributesAmount;
         _attributesAmount += 1;
-        if (canMint) canMint = false;
+        addTraits(newAttributeId, traitIds, names, rarities);
     }
 
     // todo access by admin only
@@ -100,25 +109,43 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
     // todo access by admin only
     // todo Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
     function updateAttributeHash(uint256 attributeId, string memory ipfsCID) public {
+        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         require(
             bytes(ipfsCID).length == IPFS_CID_BYTES_LENGTH,
             "HugoNFT::invalid ipfs CID length"
         );
-        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
 
-        AttributeIpfsCID[] storage attributeHashes = _attributeCIDs[attributeId];
-        if (attributeHashes.length > 0) {
-            AttributeIpfsCID storage lastCID = attributeHashes[attributeHashes.length - 1];
+        AttributeIpfsCID[] storage CIDs = _attributeCIDs[attributeId];
+        if (CIDs.length > 0) {
+            AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
             if (lastCID.isValid) lastCID.isValid = false;
         }
-        attributeHashes.push(AttributeIpfsHash(ipfsCID, true));
-        
-        if (!canMint && checkAllHashesAreValid()) {
-            canMint = true;
+        CIDs.push(AttributeIpfsHash(ipfsCID, true));
+
+        if (isPaused && checkAllCIDsAreValid()) {
+            isPaused = false;
         }
     }
 
-    // access
+    // todo access
+    function addTraits(
+        uint256 attributeId,
+        uint256[] memory traitIds,
+        string[] memory names,
+        Rarity[] memory rarities
+    )
+        external
+    {
+        require(
+            traitIds.length == names.length && names.length == rarities.length,
+            "HugoNFT::unequal lengths of trait inner data arrays"
+        );
+        for (uint256 i = 0; i < traitIds.length; i++) {
+            addTrait(attributeId, traitIds[i], names[i], rarities[i]);
+        }
+    }
+
+    // todo access
     function addTrait(
         uint256 attributeId,
         uint256 traitId,
@@ -145,24 +172,23 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
 
         tA.push(Trait(traitId, name, rarity));
 
-        if (canMint) canMint = false;
+        if (!isPaused) isPaused = true;
     }
 
-//    function checkAllHashesAreValid() private view returns (bool) {
-//        for (uint256 i = 0; i < _attributesAmount; i++) {
-//            AttributeIpfsHash[] storage attributeHashes = _attributeHashes[i];
-//            uint256 lastHashIndex = attributeHashes.length > 0 ?
-//            traitsOfAttribute.length - 1 : 0;
-//            AttributeIpfsHash storage lastHash = attributeHashes[lastHashIndex];
-//            if (!lastHash.isValid) return false;
-//        }
-//        return true;
-//    }
+    function checkAllCIDsAreValid() private view returns (bool) {
+        for (uint256 i = 0; i < _attributesAmount; i++) {
+            AttributeIpfsCID[] storage CIDs = _attributeCIDs[i];
+            if (CIDs.length == 0) return false;
+            AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
+            if (!lastCID.isValid) return false;
+        }
+        return true;
+    }
 }
 
 //contract HugoNFT is ERC721Enumerable {
 //
-//    bool canMint;
+//    bool isPaused;
 //
 //    /**
 //     * Constants defining attributes ids in {HugoNFT-_traitsOfAttribute} mapping
@@ -193,7 +219,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
 //        _attributesAmount = attributesAmount;
 //        nftGenerationScript = script;
 //
-//        canMint = false;
+//        isPaused = true;
 //    }
 //
 //    // access by admin and shop
