@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./HugoNFTMetadataManager.sol";
 
 /** TODO
-2. events
 5. update traits info
 6. loop boundaries
 7. duplicate traits
@@ -20,6 +19,10 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
 
     // Amount of exclusive NFTs
     uint256 private _exclusiveNFTsAmount;
+
+    event Mint(address indexed to, uint256 indexed tokenId, string name);
+    event ChangeName(uint256 indexed tokenId, string name);
+    event ChangeDescription(uint256 indexed tokenId, string description);
 
     constructor(
         string memory baseTokenURI,
@@ -73,6 +76,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         super._safeMint(to, newTokenId);
 
         _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
+
+        emit Mint(to, newTokenId, name);
     }
 
     // check whose beforeTransfer is called
@@ -102,6 +107,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         _exclusiveNFTsAmount += 1;
 
         _exclusiveNFTs[newTokenId] = ExclusiveNFT(newTokenId, name, description);
+
+        emit Mint(to, newTokenId, name);
     }
 
     function changeNFTName(uint256 tokenId, string memory name) external {
@@ -119,6 +126,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         } else {
             _exclusiveNFTs[tokenId].name = name;
         }
+
+        emit ChangeName(tokenId, name);
     }
 
     function changeNFTDescription(uint256 tokenId, string memory description) external {
@@ -136,6 +145,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         } else {
             _exclusiveNFTs[tokenId].description = description;
         }
+
+        emit ChangeDescription(tokenId, description);
     }
 
     function isUsedSeed(uint256[] calldata seed) public view returns (bool) {

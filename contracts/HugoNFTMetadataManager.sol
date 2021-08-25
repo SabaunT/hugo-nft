@@ -13,12 +13,16 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
     bool isPaused;
 
+    event AddNewAttribute(uint256 indexed newAttributeId);
+    event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name);
+    event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
+
     modifier whenIsNotPaused() {
         require(!isPaused, "HugoNFT::calling action in a paused state");
         _;
     }
 
-    function addNewAttributeAndTraits(
+    function addNewAttributeWithTraits(
         uint256[] memory traitIds,
         string[] memory names,
         Rarity[] memory rarities
@@ -28,7 +32,10 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     {
         uint256 newAttributeId = _attributesAmount;
         _attributesAmount += 1;
+
         addTraits(newAttributeId, traitIds, names, rarities);
+
+        emit AddNewAttribute(newAttributeId);
     }
 
     // If for some attribute it wasn't intended to update the hash, then
@@ -68,6 +75,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         if (isPaused && checkAllCIDsAreValid()) {
             isPaused = false;
         }
+
+        emit UpdateAttributeCID(attributeId, ipfsCID);
     }
 
     function addTraits(
@@ -116,6 +125,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         tA.push(Trait(traitId, name, rarity));
 
         if (!isPaused) isPaused = true;
+
+        emit AddNewTrait(attributeId, traitId, name);
     }
 
     function checkAllCIDsAreValid() private view returns (bool) {
