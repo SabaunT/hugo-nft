@@ -35,6 +35,21 @@ contract HugoNFTTypes {
         string script;
         bool isValid;
     }
+
+    // todo not used
+    struct GeneratedHugo {
+        uint256 tokenId;
+        uint256[] seed;
+        string name;
+        string description;
+    }
+
+    // todo not used
+    struct ExclusiveHugo {
+        uint256 tokenId;
+        string name;
+        string description;
+    }
 }
 
 /**
@@ -58,6 +73,9 @@ contract HugoNFTStorage is HugoNFTTypes {
     // token id => seed. Seed is an array of trait ids.
     // A 0 value of token id is reserved for "no attribute" in the seed array
     mapping(uint256 => uint256[]) internal _tokenSeed;
+
+    // keccak256 of seed => boolean. Shows whether seed was used or not.
+    mapping(bytes32 => bool) internal _isUsedSeed;
 
     // attribute id => traits of the attribute
     mapping(uint256 => Trait[]) internal _traitsOfAttribute;
@@ -134,7 +152,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
         string[] memory names,
         Rarity[] memory rarities
     )
-        external
+        public
     {
         require(
             traitIds.length == names.length && names.length == rarities.length,
@@ -186,6 +204,139 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
     }
 }
 
+contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
+    // Available to mint amount of auto-generated NFTs.
+    uint256 constant public generatedHugoCap = 10000;
+
+    string private _baseTokenURI;
+
+    // Amount of exclusive NFTs
+    uint256 private _exclusiveNFTsAmount;
+
+    constructor(
+        string memory baseTokenURI,
+        uint256 attributesAmount,
+        string memory script
+    )
+        ERC721("Hugo", "HUGO")
+    {
+        require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
+        require(attributesAmount > 0, "HugoNFT::attributes amount is 0");
+        require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
+
+        _baseTokenURI = baseTokenURI;
+        _attributesAmount = attributesAmount;
+        nftGenerationScripts.push(script);
+
+        isPaused = true;
+    }
+
+    // todo access by admin and shop
+    // todo check whose beforeTransfer is called
+    function mint(
+        address to,
+        uint256[] calldata seed,
+        string memory name,
+        string memory description
+    )
+        external
+        whenIsNotPaused
+    {
+        require(_isValidSeed(seed), "HugoNFT::seed is invalid");
+        require(bytes(name).length <= 75, "HugoNFT::too long NFT name");
+        require(bytes(description).length <= 300, "HugoNFT::too long NFT description");
+        require(
+            getGeneratedHugoAmount() < generatedHugoCap,
+            "HugoNFT::supply cap was reached"
+        );
+
+        // todo set NFT data (name and descr)
+        uint256 newTokenId = getNewIdForGeneratedHugo();
+        super._safeMint(to, newTokenId);
+    }
+
+    // access by admin only
+    // check whose beforeTransfer is called
+    // supplyCap a restriction here as well?
+    function mintExclusive(
+        address to,
+        string memory name,
+        string memory description
+    )
+        external
+        whenIsNotPaused
+    {
+        require(bytes(name).length <= 75, "HugoNFT::too long NFT name");
+        require(bytes(description) <= 300, "HugoNFT::too long NFT description");
+
+        uint256 newTokenId = getNewIdForExclusiveHugo();
+        super._safeMint(to, newTokenId);
+        _exclusiveNFTsAmount += 1;
+    }
+
+    function isUsedSeed(uint256[] calldata seed) public view returns (bool) {
+        return _isUsedSeed[_getSeedHash(seed)];
+    }
+
+    function _baseURI() internal view override returns (string memory) {
+        return _baseTokenURI;
+    }
+
+    function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
+        bool isValidSeedLength = seed.length != _attributesAmount;
+        bool areValidTraitIds = _areValidTraitIds(seed);
+        bool isNewSeed = !isUsedSeed(seed);
+        return isValidSeedLength && areValidTraitIds && isNewSeed;
+    }
+
+    function _areValidTraitIds(uint256[] calldata seed) private view returns (bool) {
+        for (uint256 i = 0; i < _attributesAmount; i++ ) {
+            // That's one of reasons why traits are added sequentially.
+            // If IDs weren't provided sequentially, the only check we could do is
+            // by accessing a trait in some mapping, that stores info whether the trait
+            // with the provided id is present or not.
+            uint256 numOfTraits = _traitsOfAttribute[i].length;
+            if (seed[i] >= numOfTraits) return false;
+        }
+        return true;
+    }
+
+    function _getSeedHash(uint256[] calldata seed) private view returns (bytes32) {
+        bytes memory seedBytes = traitIdToBytes(seed[0]);
+        for (uint256 i = 1; i < seed.length; i++) {
+            uint256 traitId = seed[i];
+            seedBytes = bytes.concat(seedBytes, bytes32(traitId));
+        }
+        return keccak256(seedBytes);
+    }
+
+    // move to utils
+    function traitIdToBytes(uint256 traitId) private view returns (bytes) {
+        bytes32 traitIdBytes32 = bytes32(traitId);
+        bytes memory traitIdBytes = new bytes(32);
+        for (uint256 i = 0; i < 32; i++) {
+            traitIdBytes[i] = traitIdBytes32[i];
+        }
+        return traitIdBytes;
+    }
+
+    // Ids are from 0 to 9999. All in all, 10'000 generated hugo NFTs.
+    // A check whether an NFT could be minted with a valid id is done
+    // in the {HugoNFT-mint}.
+    function getNewIdForGeneratedHugo() private view returns (uint256) {
+        return getGeneratedHugoAmount();
+    }
+
+    function getGeneratedHugoAmount() private view returns (uint256) {
+        return totalSupply() - _exclusiveNFTsAmount;
+    }
+
+    // Ids are from 10'000 and etc.
+    function getNewIdForExclusiveHugo() private view returns (uint256) {
+        return generatedHugoCap + _exclusiveNFTsAmount;
+    }
+}
+
 //contract HugoNFT is ERC721Enumerable {
 //
 //    bool isPaused;
@@ -199,70 +350,11 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
 //    uint256 constant public SHIRT_ID = 3;
 //    uint256 constant public SCARF_ID = 4;
 //
-//    // Available to mint amount of NFTs.
-//    uint256 constant public supplyCap = 10000;
 //
 //    string private _baseTokenURI;
 //
-//    constructor(
-//        string memory baseTokenURI,
-//        uint256 attributesAmount,
-//        string memory script
-//    )
-//    ERC721("Hugo", "HUGO")
-//    {
-//        require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
-//        require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
-//        require(attributesAmount > 0, "HugoNFT::attributes amount is 0");
 //
-//        _baseTokenURI = baseTokenURI;
-//        _attributesAmount = attributesAmount;
-//        nftGenerationScript = script;
 //
-//        isPaused = true;
-//    }
-//
-//    // access by admin and shop
-//    // check whose beforeTransfer is called
-//    function mint(
-//        address to,
-//        uint256[] calldata seed,
-//        string memory name,
-//        string memory description
-//    )
-//    external
-//    whenCanMint
-//    {
-//        require(_isValidSeed(seed), "HugoNFT::seed is invalid");
-//        require(bytes(name).length <= 60, "HugoNFT::too long NFT name");
-//        require(bytes(description) <= 250, "HugoNFT::too long NFT description");
-//        require(totalSupply() < supplyCap, "HugoNFT::supply cap was reached");
-//
-//        uint256 newTokenId = totalSupply();
-//        super._safeMint(to, newTokenId);
-//
-//        _tokenSeed[newTokenId] = seed;
-//        _tokenName[newTokenId] = name;
-//        _tokenDescription[newTokenId] = description;
-//    }
-//
-//    // access by admin only
-//    // check whose beforeTransfer is called
-//    // supplyCap a restriction here as well?
-//    function mintExclusive(
-//        address to,
-//        string memory name,
-//        string memory description
-//    )
-//    external
-//    whenCanMint
-//    {
-//        require(bytes(name).length <= 60, "HugoNFT::too long NFT name");
-//        require(bytes(description) <= 250, "HugoNFT::too long NFT description");
-//        // todo - nope, they have another approach in Ids
-//        uint256 newTokenId = totalSupply();
-//        super._safeMint(to, newTokenId);
-//    }
 //
 //    // access by admin only
 //    function setTokenURI(string calldata newURI) external {
@@ -275,27 +367,6 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
 //
 //        _baseTokenURI = newURI;
 //    }
-//
-//
-//    function _baseURI() internal view override returns (string memory) {
-//        return _baseTokenURI;
-//    }
-//
-//    // return error
-//    // ids in seed should follow the "contract" of attributes layout [HEAD_ID, GLASSES_ID, BODY_ID, SHIRT_ID, SCARF_ID]
-//    function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
-//        if (seed.length != _attributesAmount) return false;
-//
-//        for (uint256 i = 0; i < _attributesAmount; i++ ) {
-//            // if IDs weren't provided sequentially, the only check we could do is
-//            // by accessing a trait in some mapping, that stores info whether they are
-//            // present or not.
-//            uint256 numOfTraits = _traitsOfAttribute[i].length;
-//            if (seed[i] >= numOfTraits) return false;
-//        }
-//        return true;
-//    }
-//
 //}
 
 //    function getTokenInfo(uint256 tokenId)
