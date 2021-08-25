@@ -1,9 +1,11 @@
 pragma solidity 0.8.7;
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
+
 import "./HugoNFTStorage.sol";
 
 // Management for attributes, traits and hashes - all are named as meta-data.
-contract HugoNFTMetadataManager is HugoNFTStorage {
+contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
     // The flag that indicates whether main contract procedures (minting) can work.
     // It is set to false in several situations:
@@ -16,23 +18,25 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
         _;
     }
 
-    // todo access by admin only
     function addNewAttributeAndTraits(
         uint256[] memory traitIds,
         string[] memory names,
         Rarity[] memory rarities
     )
-    external
+        external
+        onlyRole(NFT_ADMIN_ROLE)
     {
         uint256 newAttributeId = _attributesAmount;
         _attributesAmount += 1;
         addTraits(newAttributeId, traitIds, names, rarities);
     }
 
-    // todo access by admin only
     // If for some attribute it wasn't intended to update the hash, then
     // an empty string should be sent as an array member.
-    function updateMultipleAttributesHashes(string[] memory CIDs) external {
+    function updateMultipleAttributesHashes(string[] memory CIDs)
+        external
+        onlyRole(NFT_ADMIN_ROLE)
+    {
         require(
             CIDs.length == _attributesAmount,
             "HugoNFT::invalid cids array length"
@@ -43,9 +47,11 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
         }
     }
 
-    // todo access by admin only
     // todo Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
-    function updateAttributeHash(uint256 attributeId, string memory ipfsCID) public {
+    function updateAttributeHash(uint256 attributeId, string memory ipfsCID)
+        public
+        onlyRole(NFT_ADMIN_ROLE)
+    {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         require(
             bytes(ipfsCID).length == IPFS_CID_BYTES_LENGTH,
@@ -64,14 +70,14 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
         }
     }
 
-    // todo access
     function addTraits(
         uint256 attributeId,
         uint256[] memory traitIds,
         string[] memory names,
         Rarity[] memory rarities
     )
-    public
+        public
+        onlyRole(NFT_ADMIN_ROLE)
     {
         require(
             traitIds.length == names.length && names.length == rarities.length,
@@ -82,14 +88,14 @@ contract HugoNFTMetadataManager is HugoNFTStorage {
         }
     }
 
-    // todo access
     function addTrait(
         uint256 attributeId,
         uint256 traitId,
         string calldata name,
         Rarity rarity
     )
-    public
+        public
+        onlyRole(NFT_ADMIN_ROLE)
     {
         require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
         require(

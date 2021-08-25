@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 import "./HugoNFTMetadataManager.sol";
 
 /** TODO
-1. Roles
 2. events
 5. update traits info
 6. loop boundaries
@@ -33,6 +32,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         require(attributesAmount > 0, "HugoNFT::attributes amount is 0");
         require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
 
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+
         _baseTokenURI = baseTokenURI;
         _attributesAmount = attributesAmount;
         nftGenerationScripts.push(script);
@@ -40,7 +41,6 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         isPaused = true;
     }
 
-    // todo access by admin and shop
     // todo check whose beforeTransfer is called
     function mint(
         address to,
@@ -51,6 +51,10 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         external
         whenIsNotPaused
     {
+        require(
+            hasRole(SHOP_ROLE, _msgSender()) || hasRole(NFT_ADMIN_ROLE, _msgSender()),
+            "HugoNFT::msg sender has no access role"
+        );
         require(_isValidSeed(seed), "HugoNFT::seed is invalid");
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
@@ -71,9 +75,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
     }
 
-    // access by admin only
     // check whose beforeTransfer is called
-    // supplyCap a restriction here as well?
     function mintExclusive(
         address to,
         string memory name,
@@ -82,6 +84,10 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         external
         whenIsNotPaused
     {
+        require(
+            hasRole(NFT_ADMIN_ROLE, _msgSender()),
+            "HugoNFT::msg sender has no access role"
+        );
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
             "HugoNFT::invalid NFT name length"
@@ -100,7 +106,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
 
     function changeNFTName(uint256 tokenId, string memory name) external {
         require(
-            ownerOf(tokenId) == msg.sender(), // todo when roles come change to func call
+            ownerOf(tokenId) == _msgSender(),
             "HugoNFT::token id isn't owned by msg sender"
         );
         require(
@@ -114,6 +120,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
             _exclusiveNFTs[tokenId].name = name;
         }
     }
+
     function changeNFTDescription(uint256 tokenId, string memory description) external {
         require(
             ownerOf(tokenId) == msg.sender(), // todo when roles come change to func call
