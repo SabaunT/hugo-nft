@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
 import "./HugoNFTTypes.sol";
@@ -20,7 +21,6 @@ contract HugoNFTStorage is HugoNFTTypes {
     bytes32 public constant SHOP_ROLE = keccak256("SHOP_ROLE");
     bytes32 public constant NFT_ADMIN_ROLE = keccak256("NFT_ADMIN_ROLE");
 
-    string internal constant EMPTY_IPFS_CID_STRING = "";
     // Length of the CID in base58 representation
     uint256 internal constant IPFS_CID_BYTES_LENGTH = 46;
     uint256 internal constant MAX_ADDING_TRAITS = 25;

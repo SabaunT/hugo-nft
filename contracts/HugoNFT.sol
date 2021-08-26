@@ -1,6 +1,7 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
+import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./HugoNFTMetadataManager.sol";
@@ -37,17 +38,27 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
 
         _baseTokenURI = baseTokenURI;
         _attributesAmount = attributesAmount;
-        nftGenerationScripts.push(script);
+        nftGenerationScripts.push(Script(script, true));
 
         isPaused = true;
+    }
+
+    // todo check!
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        override(ERC721Enumerable, AccessControl)
+        returns (bool)
+    {
+        return super.supportsInterface(interfaceId);
     }
 
     // todo check whose beforeTransfer is called
     function mint(
         address to,
         uint256[] calldata seed,
-        string memory name,
-        string memory description
+        string calldata name,
+        string calldata description
     )
         external
         whenIsNotPaused
@@ -81,8 +92,8 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     // check whose beforeTransfer is called
     function mintExclusive(
         address to,
-        string memory name,
-        string memory description
+        string calldata name,
+        string calldata description
     )
         external
         whenIsNotPaused
@@ -109,7 +120,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         emit Mint(to, newTokenId, name);
     }
 
-    function changeNFTName(uint256 tokenId, string memory name) external {
+    function changeNFTName(uint256 tokenId, string calldata name) external {
         require(
             ownerOf(tokenId) == _msgSender(),
             "HugoNFT::token id isn't owned by msg sender"
@@ -128,7 +139,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         emit ChangeName(tokenId, name);
     }
 
-    function changeNFTDescription(uint256 tokenId, string memory description) external {
+    function changeNFTDescription(uint256 tokenId, string calldata description) external {
         require(
             ownerOf(tokenId) == _msgSender(),
             "HugoNFT::token id isn't owned by msg sender"
@@ -173,26 +184,6 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         return true;
     }
 
-    // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
-    function _getSeedHash(uint256[] calldata seed) private view returns (bytes32) {
-        bytes memory seedBytes = _traitIdToBytes(seed[0]);
-        for (uint256 i = 1; i < seed.length; i++) {
-            uint256 traitId = seed[i];
-            seedBytes = bytes.concat(seedBytes, bytes32(traitId));
-        }
-        return keccak256(seedBytes);
-    }
-
-    // todo move to utils
-    function _traitIdToBytes(uint256 traitId) private view returns (bytes) {
-        bytes32 traitIdBytes32 = bytes32(traitId);
-        bytes memory traitIdBytes = new bytes(32);
-        for (uint256 i = 0; i < 32; i++) {
-            traitIdBytes[i] = traitIdBytes32[i];
-        }
-        return traitIdBytes;
-    }
-
     // Ids are from 0 to 9999. All in all, 10'000 generated hugo NFTs.
     // A check whether an NFT could be minted with a valid id is done
     // in the {HugoNFT-mint}.
@@ -209,7 +200,27 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         return generatedHugoCap + _exclusiveNFTsAmount;
     }
 
-    function _isIdOfGeneratedNFT(uint256 tokenId) private view returns (uint256) {
+    // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
+    function _getSeedHash(uint256[] calldata seed) private pure returns (bytes32) {
+        bytes memory seedBytes = _traitIdToBytes(seed[0]);
+        for (uint256 i = 1; i < seed.length; i++) {
+            uint256 traitId = seed[i];
+            seedBytes = bytes.concat(seedBytes, bytes32(traitId));
+        }
+        return keccak256(seedBytes);
+    }
+
+    // todo move to utils
+    function _traitIdToBytes(uint256 traitId) private pure returns (bytes memory) {
+        bytes32 traitIdBytes32 = bytes32(traitId);
+        bytes memory traitIdBytes = new bytes(32);
+        for (uint256 i = 0; i < 32; i++) {
+            traitIdBytes[i] = traitIdBytes32[i];
+        }
+        return traitIdBytes;
+    }
+
+    function _isIdOfGeneratedNFT(uint256 tokenId) private pure returns (bool) {
         return tokenId < generatedHugoCap;
     }
 }

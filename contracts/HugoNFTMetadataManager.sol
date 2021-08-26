@@ -1,3 +1,4 @@
+//SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
@@ -16,9 +17,9 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     }
 
     function addNewAttributeWithTraits(
-        uint256[] memory traitIds,
-        string[] memory names,
-        Rarity[] memory rarities
+        uint256[] calldata traitIds,
+        string[] calldata names,
+        Rarity[] calldata rarities
     )
         external
         onlyRole(NFT_ADMIN_ROLE)
@@ -33,7 +34,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
     // If for some attribute it wasn't intended to update the hash, then
     // an empty string should be sent as an array member.
-    function updateMultipleAttributesHashes(string[] memory CIDs)
+    function updateMultipleAttributesHashes(string[] calldata CIDs)
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
@@ -42,13 +43,13 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
             "HugoNFT::invalid cids array length"
         );
         for (uint256 i = 0; i < CIDs.length; i++) {
-            if (CIDs[i] == EMPTY_IPFS_CID_STRING) continue;
+            if (bytes(CIDs[i]).length == 0) continue;
             updateAttributeHash(i, CIDs[i]);
         }
     }
 
     // todo Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
-    function updateAttributeHash(uint256 attributeId, string memory ipfsCID)
+    function updateAttributeHash(uint256 attributeId, string calldata ipfsCID)
         public
         onlyRole(NFT_ADMIN_ROLE)
     {
@@ -63,7 +64,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
             AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
             if (lastCID.isValid) lastCID.isValid = false;
         }
-        CIDs.push(AttributeIpfsHash(ipfsCID, true));
+        CIDs.push(AttributeIpfsCID(ipfsCID, true));
 
         if (isPaused && checkAllCIDsAreValid()) {
             isPaused = false;
@@ -74,9 +75,9 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
     function addTraits(
         uint256 attributeId,
-        uint256[] memory traitIds,
-        string[] memory names,
-        Rarity[] memory rarities
+        uint256[] calldata traitIds,
+        string[] calldata names,
+        Rarity[] calldata rarities
     )
         public
         onlyRole(NFT_ADMIN_ROLE)
@@ -115,7 +116,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         // But there is a con: we should add traits sequentially
         Trait[] storage tA = _traitsOfAttribute[attributeId];
         require(
-            tA.length == newTraitId,
+            tA.length == traitId,
             "HugoNFT::traits should be added sequentially"
         );
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
