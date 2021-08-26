@@ -13,7 +13,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     // It is set to false in several situations:
     // 1. One of attributes has no traits
     // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
-    bool isPaused;
+    bool public isPaused;
 
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;

@@ -5,6 +5,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./HugoNFTMetadataManager.sol";
+import "./HugoNFTInfo.sol";
 
 /** TODO
 0. TESTS
@@ -18,7 +19,7 @@ import "./HugoNFTMetadataManager.sol";
 - pub function "isSeedUsed" - is version of seed considered?
 */
 
-contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
+contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
     event Mint(address indexed to, uint256 indexed tokenId, string name);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);

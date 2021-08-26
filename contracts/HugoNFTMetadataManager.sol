@@ -34,22 +34,22 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
     // If for some attribute it wasn't intended to update the hash, then
     // an empty string should be sent as an array member.
-    function updateMultipleAttributesHashes(string[] calldata CIDs)
+    function updateMultipleAttributesCIDs(string[] calldata CIDs)
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
-            CIDs.length == _attributesAmount,
+            CIDs.length <= _attributesAmount,
             "HugoNFT::invalid cids array length"
         );
         for (uint256 i = 0; i < CIDs.length; i++) {
             if (bytes(CIDs[i]).length == 0) continue;
-            updateAttributeHash(i, CIDs[i]);
+            updateAttributeCID(i, CIDs[i]);
         }
     }
 
     // todo Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
-    function updateAttributeHash(uint256 attributeId, string calldata ipfsCID)
+    function updateAttributeCID(uint256 attributeId, string calldata ipfsCID)
         public
         onlyRole(NFT_ADMIN_ROLE)
     {
