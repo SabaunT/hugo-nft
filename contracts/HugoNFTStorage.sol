@@ -18,7 +18,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;
 
-    bytes32 public constant SHOP_ROLE = keccak256("SHOP_ROLE");
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // TODO CHANGE TO MINTER_ROLE
     bytes32 public constant NFT_ADMIN_ROLE = keccak256("NFT_ADMIN_ROLE");
 
     // Length of the CID in base58 representation

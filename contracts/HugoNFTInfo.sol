@@ -30,4 +30,12 @@ contract HugoNFTInfo is HugoNFTStorage {
     {
         return _attributeCIDs[attributeId];
     }
+
+    function getTraitsOfAttribute(uint256 attributeId)
+        external
+        view
+        returns (Trait[] memory)
+    {
+      return _traitsOfAttribute[attributeId];
+    }
 }

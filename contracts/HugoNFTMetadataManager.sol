@@ -116,8 +116,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         // But there is a con: we should add traits sequentially
         Trait[] storage tA = _traitsOfAttribute[attributeId];
         require(
-            tA.length == traitId,
-            "HugoNFT::traits should be added sequentially"
+            tA.length + 1 == traitId,
+            "HugoNFT::traits should be added sequentially by trait ids"
         );
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
 

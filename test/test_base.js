@@ -1,6 +1,10 @@
 const HugoNFT = artifacts.require("HugoNFT");
 
 contract('HugoNFT', async(accounts) => {
+    function range(size, startAt = 0) {
+        return [...Array(size).keys()].map(i => i + startAt);
+    }
+
     let expectThrow = async (promise) => {
         try {
             await promise;
@@ -20,8 +24,9 @@ contract('HugoNFT', async(accounts) => {
     const account1 = accounts[0];
     const account2 = accounts[1];
     const account3 = accounts[2];
-    const NFT_ADMIN = accounts[3];
-    const owner = accounts[4];
+    const nft_admin = accounts[3];
+    const minter = accounts[4];
+    const owner = accounts[5];
 
     const HEAD_ID = 0;
     const GLASSES_ID = 1;
@@ -36,14 +41,16 @@ contract('HugoNFT', async(accounts) => {
         LEGENDARY: 3,
     }
 
-    const versionOneTokenURI = "someURI";
+    const tokenURI = "someURI";
     const versionOneAttributesAmount = 5;
+    const versionTwoAttributesAmount = 6;
 
     const zeroAddress = "0x0000000000000000000000000000000000000000";
     const exampleCID1 = "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR";
     const exampleCID2 = "QmXoypizjW3WknFiJnKLwHCnL72vedxjQkDDP1mXWo6uco";
 
     const NFT_ADMIN_ROLE = "0xd4dd364b99254967de7b77fa79c0f7835d1d5ebdb779edee0c386bda7d2cc482";
+    const MINTER_ROLE = "0x9f2df0fed2c77648de5860a4cc508cd0818c85b8b8a1ab4ceeef8d981c8956a6"
 
     let nftContract;
 
@@ -54,29 +61,17 @@ contract('HugoNFT', async(accounts) => {
         )
         // zero attributes amount
         await expectThrow(
-            HugoNFT.new(versionOneTokenURI, 0, "some python script", {from: owner})
+            HugoNFT.new(tokenURI, 0, "some python script", {from: owner})
         )
         // empty generator script
         await expectThrow(
-            HugoNFT.new(versionOneTokenURI, versionOneAttributesAmount, "", {from: owner})
+            HugoNFT.new(tokenURI, versionOneAttributesAmount, "", {from: owner})
         )
-        nftContract = await HugoNFT.new(versionOneTokenURI, versionOneAttributesAmount, "some python script", {from: owner});
+        nftContract = await HugoNFT.new(tokenURI, versionOneAttributesAmount, "some python script", {from: owner});
 
         // Granting roles
-        await nftContract.grantRole(NFT_ADMIN_ROLE, NFT_ADMIN, {from: owner});
-
-        // // adding some traits
-        // await nftContract.addTrait(HEAD_ID, "Classical Hat", rarity.UNCOMMON);
-        // await nftContract.addTrait(GLASSES_ID, "RayBan", rarity.COMMON);
-        // await nftContract.addTrait(BODY_ID, "Muscular", rarity.UNCOMMON);
-        // await nftContract.addTrait(SHIRT_ID, "Tuxedo", rarity.UNCOMMON);
-        // await nftContract.addTrait(SCARF_ID, "Gryffindor", rarity.RARE);
-        //
-        // await nftContract.addTrait(HEAD_ID, "Punk", rarity.UNCOMMON);
-        // await nftContract.addTrait(GLASSES_ID, "Polaroid", rarity.RARE);
-        // await nftContract.addTrait(BODY_ID, "Thin", rarity.COMMON);
-        // await nftContract.addTrait(SHIRT_ID, "Raped", rarity.COMMON);
-        // await nftContract.addTrait(SCARF_ID, "Slytherin", rarity.RARE);
+        await nftContract.grantRole(NFT_ADMIN_ROLE, nft_admin, {from: owner});
+        await nftContract.grantRole(MINTER_ROLE, minter, {from: owner});
     })
 
     it("Mints token for account1 fails - paused state", async() => {
@@ -98,16 +93,16 @@ contract('HugoNFT', async(accounts) => {
             )
             // invalid CIDs data length
             await expectThrow(
-                nftContract.updateMultipleAttributesCIDs(["1", "2", "3", "4", "5", "6"], {from: NFT_ADMIN})
+                nftContract.updateMultipleAttributesCIDs(["1", "2", "3", "4", "5", "6"], {from: nft_admin})
             )
             // invalid length of CID itself
             await expectThrow(
-                nftContract.updateMultipleAttributesCIDs(invalidCIDLenData, {from: NFT_ADMIN})
+                nftContract.updateMultipleAttributesCIDs(invalidCIDLenData, {from: nft_admin})
             )
             let validCIDsArray = Array(versionOneAttributesAmount).fill(exampleCID1);
             // let attribute id 2 CID be empty
             validCIDsArray[2] = "";
-            await nftContract.updateMultipleAttributesCIDs(validCIDsArray, {from: NFT_ADMIN})
+            await nftContract.updateMultipleAttributesCIDs(validCIDsArray, {from: nft_admin})
 
             let isPaused = await nftContract.isPaused();
             // paused
@@ -121,13 +116,13 @@ contract('HugoNFT', async(accounts) => {
             )
             // invalid id
             await expectThrow(
-                nftContract.updateAttributeCID(5, exampleCID2, {from: NFT_ADMIN})
+                nftContract.updateAttributeCID(5, exampleCID2, {from: nft_admin})
             )
             // invalid CID length
             await expectThrow(
-                nftContract.updateAttributeCID(2, "someInvalidSeed", {from: NFT_ADMIN})
+                nftContract.updateAttributeCID(2, "someInvalidSeed", {from: nft_admin})
             )
-            await nftContract.updateAttributeCID(2, exampleCID2, {from: NFT_ADMIN})
+            await nftContract.updateAttributeCID(2, exampleCID2, {from: nft_admin})
 
             let isPaused = await nftContract.isPaused();
             assert.ok(!isPaused);
@@ -135,11 +130,174 @@ contract('HugoNFT', async(accounts) => {
 
         it("updating CIDs with an array of empty strings", async() => {
             let emptyCIDsData = Array(versionOneAttributesAmount).fill("");
-            await nftContract.updateMultipleAttributesCIDs(emptyCIDsData, {from: NFT_ADMIN});
+            await nftContract.updateMultipleAttributesCIDs(emptyCIDsData, {from: nft_admin});
 
             // update shouldn't have brought changes
             let attr0CIDs = await nftContract.getCIDsOfAttribute(0);
             assert.equal(attr0CIDs.length, 1);
         })
+
+        it("adding multiple traits", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.addTraits(
+                    HEAD_ID,
+                    range(10, 1),
+                    Array(10).fill("ab"),
+                    Array(10).fill(rarity.COMMON),
+                    {from: account1}
+                )
+            )
+            // invalid traits length (over maximum)
+            await expectThrow(
+                nftContract.addTraits(
+                    HEAD_ID,
+                    range(26, 1),
+                    Array(10).fill("ab"),
+                    Array(10).fill(rarity.COMMON),
+                    {from: nft_admin}
+                )
+            )
+            // disproportion in trait data length (ids array != name array and e.t.c.)
+            await expectThrow(
+                nftContract.addTraits(
+                    HEAD_ID,
+                    range(25, 1),
+                    Array(10).fill("ab"),
+                    Array(10).fill(rarity.COMMON),
+                    {from: nft_admin}
+                )
+            )
+            await expectThrow(
+                nftContract.addTraits(
+                    HEAD_ID,
+                    range(10, 1),
+                    Array(10).fill("ab"),
+                    Array(5).fill(rarity.COMMON),
+                    {from: nft_admin}
+                )
+            )
+
+            // Add multiple traits
+            await nftContract.addTraits(
+                HEAD_ID,
+                range(3, 1),
+                Array(3).fill("Head trait"),
+                Array(3).fill(rarity.UNCOMMON),
+                {from: nft_admin}
+            )
+            await nftContract.addTraits(
+                GLASSES_ID,
+                range(3, 1),
+                Array(3).fill("Glasses trait"),
+                Array(3).fill(rarity.UNCOMMON),
+                {from: nft_admin}
+            )
+            await nftContract.addTraits(
+                BODY_ID,
+                range(3, 1),
+                Array(3).fill("Body trait"),
+                Array(3).fill(rarity.UNCOMMON),
+                {from: nft_admin}
+            )
+            await nftContract.addTraits(
+                SHIRT_ID,
+                range(3, 1),
+                Array(3).fill("Shirt trait"),
+                Array(3).fill(rarity.UNCOMMON),
+                {from: nft_admin}
+            )
+            await nftContract.addTraits(
+                SCARF_ID,
+                range(3, 1),
+                Array(3).fill("Scarf trait"),
+                Array(3).fill(rarity.UNCOMMON),
+                {from: nft_admin}
+            )
+
+            let traitsOfAttribute0 = await nftContract.getTraitsOfAttribute(HEAD_ID);
+            let traitsOfAttribute1 = await nftContract.getTraitsOfAttribute(GLASSES_ID);
+            let traitsOfAttribute2 = await nftContract.getTraitsOfAttribute(SHIRT_ID);
+            let traitsOfAttribute3 = await nftContract.getTraitsOfAttribute(BODY_ID);
+            let traitsOfAttribute4 = await nftContract.getTraitsOfAttribute(SCARF_ID);
+
+            let equalLength =
+                !!traitsOfAttribute0.length &&
+                !!traitsOfAttribute1.length &&
+                !!traitsOfAttribute2.length &&
+                !!traitsOfAttribute3.length &&
+                !!traitsOfAttribute4.length;
+
+            assert.ok(equalLength);
+
+            let isPause = await nftContract.isPaused();
+            assert.ok(isPause);
+        })
+
+        // todo test use reserved trait id number when testing adding new attribute
+        it("add traits by one", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.addTrait(5, 4, "TTT", rarity.LEGENDARY, {from: nft_admin})
+            )
+            // trait id spoils sequence (1,2,3, 5 )
+            await expectThrow(
+                nftContract.addTrait(HEAD_ID, 5, "TTT", rarity.LEGENDARY, {from: nft_admin})
+            )
+            // empty name
+            await expectThrow(
+                nftContract.addTrait(HEAD_ID, 4, "", rarity.LEGENDARY, {from: nft_admin})
+            )
+            // invalid access
+            await expectThrow(
+                nftContract.addTrait(HEAD_ID, 4, "Classical Hat", rarity.UNCOMMON, {from: account1})
+            )
+
+            await nftContract.addTrait(HEAD_ID, 4, "Classical Hat", rarity.UNCOMMON, {from: nft_admin});
+            await nftContract.addTrait(GLASSES_ID, 4,  "RayBan", rarity.COMMON, {from: nft_admin});
+            await nftContract.addTrait(BODY_ID, 4, "Muscular", rarity.UNCOMMON, {from: nft_admin});
+            await nftContract.addTrait(SHIRT_ID, 4, "Tuxedo", rarity.UNCOMMON, {from: nft_admin});
+            await nftContract.addTrait(SCARF_ID, 4, "Gryffindor", rarity.RARE, {from: nft_admin});
+
+            await nftContract.addTrait(HEAD_ID, 5, "Punk", rarity.UNCOMMON, {from: nft_admin});
+            await nftContract.addTrait(GLASSES_ID, 5, "Polaroid", rarity.RARE, {from: nft_admin});
+            await nftContract.addTrait(BODY_ID, 5, "Thin", rarity.COMMON, {from: nft_admin});
+            await nftContract.addTrait(SHIRT_ID, 5, "Raped", rarity.COMMON, {from: nft_admin});
+            await nftContract.addTrait(SCARF_ID, 5, "Slytherin", rarity.RARE, {from: nft_admin});
+
+            let traitsOfAttribute0 = await nftContract.getTraitsOfAttribute(HEAD_ID);
+            assert.equal(traitsOfAttribute0.length, 5);
+
+            let isPause = await nftContract.isPaused();
+            assert.ok(isPause);
+        })
+
+        it("update CIDs after adding traits", async() => {
+            let validCIDsArray = Array(versionOneAttributesAmount).fill(exampleCID2);
+            await nftContract.updateMultipleAttributesCIDs(validCIDsArray, {from: nft_admin})
+
+            let isPause = await nftContract.isPaused();
+            // is not paused
+            assert.ok(!isPause);
+        })
+
+        // todo test adding a new attribute within minting process
+        // it("adding new attribute", async() => {
+        //     // invalid access
+        //     await expectThrow(
+        //         nftContract.addTraits(
+        //             range(3, 1),
+        //             Array(3).fill("Eyes trait"),
+        //             Array(3).fill(rarity.UNCOMMON),
+        //             {from: minter}
+        //         )
+        //     )
+        //     await nftContract.addTraits(
+        //         range(3, 1),
+        //         Array(3).fill("Eyes trait"),
+        //         Array(3).fill(rarity.UNCOMMON),
+        //         {from: nft_admin}
+        //     )
+        // })
     })
 })

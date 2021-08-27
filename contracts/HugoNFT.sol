@@ -17,6 +17,7 @@ import "./HugoNFTInfo.sol";
 - script update (?)
 - events needed (?)
 - pub function "isSeedUsed" - is version of seed considered?
+5. uri for traits
 */
 
 contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
@@ -63,11 +64,8 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
     )
         external
         whenIsNotPaused
+        onlyRole(MINTER_ROLE)
     {
-        require(
-            hasRole(SHOP_ROLE, _msgSender()) || hasRole(NFT_ADMIN_ROLE, _msgSender()),
-            "HugoNFT::msg sender has no access role"
-        );
         require(_isValidSeed(seed), "HugoNFT::seed is invalid");
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
@@ -98,11 +96,8 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
     )
         external
         whenIsNotPaused
+        onlyRole(MINTER_ROLE)
     {
-        require(
-            hasRole(NFT_ADMIN_ROLE, _msgSender()),
-            "HugoNFT::msg sender has no access role"
-        );
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
             "HugoNFT::invalid NFT name length"
