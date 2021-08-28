@@ -1,6 +1,7 @@
 const HugoNFT = artifacts.require("HugoNFT");
 const { BN } = require('@openzeppelin/test-helpers');
 
+// todo check cap reached
 contract('HugoNFT', async(accounts) => {
     function range(size, startAt = 0) {
         return [...Array(size).keys()].map(i => i + startAt);
@@ -422,7 +423,59 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(totalSupply.toNumber(), 4);
             assertEqArrays([3], nftIdsOfAccount2);
         })
+    })
 
-        // todo check cap reached
+    describe("Minting exclusive tests", async() => {
+        it("can mint exclusive when paused", async() => {
+            await nftContract.addTrait(EYE_ID, 4, "New trait", rarity.LEGENDARY, {from: nft_admin});
+            let isPause = await nftContract.isPaused();
+
+            // invalid access
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", "some descr", {from: nft_admin})
+            )
+            // invalid name length (empty string)
+            await expectThrow(
+                nftContract.mintExclusive(account1, "", "some descr", {from: minter})
+            )
+            // invalid descr length (empty string)
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", "", {from: minter})
+            )
+            // invalid name length (too long string). Array(77).join("a") gives 76 char string
+            await expectThrow(
+                nftContract.mintExclusive(account1, Array(77).join("a"), "some descr", {from: minter})
+            )
+            // invalid descr length (too long string). Array(302).join("a") gives 301 char string
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", Array(302).join("a"), {from: minter})
+            )
+            await expectThrow(
+                nftContract.mintExclusive(zeroAddress, "some name", "some descr", {from: minter})
+            )
+
+            // mint 3 exclusive
+            await nftContract.mintExclusive(account1, "some name", "some descr", {from: minter})
+            await nftContract.mintExclusive(account2, "some name", "some descr", {from: minter})
+            await nftContract.mintExclusive(account3, "some name", "some descr", {from: minter})
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
+            let nftIdsOfAccount3 = await getTokenIdsOfAccount(account3);
+
+            let exclusivelyMinted = await nftContract.exclusiveNFTsAmount();
+
+            assert.ok(isPause);
+            assert.equal(totalSupply.toNumber(), 7);
+            assertEqArrays([0, 1, 2, 10000], nftIdsOfAccount1);
+            assertEqArrays([3, 10001], nftIdsOfAccount2);
+            assertEqArrays([10002], nftIdsOfAccount3);
+            assert.equal(exclusivelyMinted.toNumber(), 3)
+        })
+    })
+
+    descibe("Change nft name/description tests", async() => {
+        
     })
 })

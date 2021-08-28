@@ -47,13 +47,13 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         emit Mint(to, newTokenId, name);
     }
 
+    // can mint when paused
     function mintExclusive(
         address to,
         string calldata name,
         string calldata description
     )
         external
-        whenIsNotPaused
         onlyRole(MINTER_ROLE)
     {
         require(
@@ -67,7 +67,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
 
         uint256 newTokenId = _getNewIdForExclusiveHugo();
         super._safeMint(to, newTokenId);
-        _exclusiveNFTsAmount += 1;
+        exclusiveNFTsAmount += 1;
 
         _exclusiveNFTs[newTokenId] = ExclusiveNFT(newTokenId, name, description);
 
@@ -165,12 +165,12 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     }
 
     function _getGeneratedHugoAmount() private view returns (uint256) {
-        return totalSupply() - _exclusiveNFTsAmount;
+        return totalSupply() - exclusiveNFTsAmount;
     }
 
     // Ids are from 10'000 and etc.
     function _getNewIdForExclusiveHugo() private view returns (uint256) {
-        return generatedHugoCap + _exclusiveNFTsAmount;
+        return generatedHugoCap + exclusiveNFTsAmount;
     }
 
     // todo move to utils

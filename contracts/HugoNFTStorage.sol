@@ -15,6 +15,9 @@ contract HugoNFTStorage is HugoNFTTypes {
     // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
     bool public isPaused;
 
+    // Amount of exclusive NFTs
+    uint256 public exclusiveNFTsAmount;
+
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;
 
@@ -26,9 +29,6 @@ contract HugoNFTStorage is HugoNFTTypes {
     uint256 internal constant MAX_ADDING_TRAITS = 25;
 
     string internal _baseTokenURI;
-
-    // Amount of exclusive NFTs
-    uint256 internal _exclusiveNFTsAmount;
 
     // Script that is used to generate NFTs from traits
     Script[] nftGenerationScripts;
