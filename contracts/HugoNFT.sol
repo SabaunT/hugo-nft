@@ -101,6 +101,32 @@ contract HugoNFT is HugoNFTMinter {
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
+    // todo seed length
+    function getGeneratedToken(uint256 tokenId)
+        external
+        view
+        returns (GeneratedNFT memory)
+    {
+        require(
+            _isIdOfGeneratedNFT(tokenId),
+            "HugoNFT::provided id out of generated token ids range"
+        );
+        return _generatedNFTs[tokenId];
+    }
+
+    // todo seed length
+    function getExclusiveToken(uint256 tokenId)
+        external
+        view
+        returns (ExclusiveNFT memory)
+    {
+        require(
+            !_isIdOfGeneratedNFT(tokenId),
+            "HugoNFT::provided id out of exclusive token ids range"
+        );
+        return _exclusiveNFTs[tokenId];
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }

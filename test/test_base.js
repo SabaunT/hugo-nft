@@ -494,8 +494,54 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(exclusivelyMinted.toNumber(), 3)
         })
     })
-    //
-    // descibe("Change nft name/description tests", async() => {
-    //
-    // })
+
+    describe("Change nft name/description tests", async() => {
+        it("changes generated and exclusive tokens names", async() => {
+            // not owned token
+            await expectThrow(
+                nftContract.changeNFTName(10, "new name", {from: account1})
+            )
+            // empty string
+            await expectThrow(
+                nftContract.changeNFTName(1, "", {from: account1})
+            )
+            // too long string
+            await expectThrow(
+                nftContract.changeNFTName(1, Array(77).join("a"), {from: account1})
+            )
+
+            await nftContract.changeNFTName(1, "Some new name", {from: account1});
+            await nftContract.changeNFTName(10000, "Some new name as well", {from: account1});
+
+            let nft1 = await nftContract.getGeneratedToken(1);
+            let nft2 = await nftContract.getExclusiveToken(10000);
+
+            assert.equal(nft1.name, "Some new name");
+            assert.equal(nft2.name, "Some new name as well");
+        })
+
+        it("changes generated and exclusive tokens descriptions", async() => {
+            // not owned token
+            await expectThrow(
+                nftContract.changeNFTDescription(10, "new description", {from: account1})
+            )
+            // empty string
+            await expectThrow(
+                nftContract.changeNFTDescription(1, "", {from: account1})
+            )
+            // too long string
+            await expectThrow(
+                nftContract.changeNFTDescription(1, Array(302).join("a"), {from: account1})
+            )
+
+            await nftContract.changeNFTDescription(1, "Some new description", {from: account1});
+            await nftContract.changeNFTDescription(10000, "Some new description as well", {from: account1});
+
+            let nft1 = await nftContract.getGeneratedToken(1);
+            let nft2 = await nftContract.getExclusiveToken(10000);
+
+            assert.equal(nft1.description, "Some new description");
+            assert.equal(nft2.description, "Some new description as well");
+        })
+    })
 })

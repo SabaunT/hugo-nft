@@ -131,6 +131,10 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         return keccak256(seedBytes);
     }
 
+    function _isIdOfGeneratedNFT(uint256 tokenId) internal pure returns (bool) {
+        return tokenId < generatedHugoCap;
+    }
+
     // Checks seed length, validity of trait ids and whether it was used
     function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
         if (seed.length != _attributesAmount) return false;
@@ -181,9 +185,5 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
             traitIdBytes[i] = traitIdBytes32[i];
         }
         return traitIdBytes;
-    }
-
-    function _isIdOfGeneratedNFT(uint256 tokenId) private pure returns (bool) {
-        return tokenId < generatedHugoCap;
     }
 }
