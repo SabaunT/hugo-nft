@@ -18,6 +18,7 @@ import "./HugoNFTMetadataManager.sol";
 - pub function "isSeedUsed" - is version of seed considered?
 5. uri for traits
 6. abi encode to simplify hashing seed
+7. move Hugo info fn to HugoNFTWithInfo, which will be the most derived
 */
 
 contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
@@ -69,6 +70,9 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
             "HugoNFT::supply cap was reached"
         );
         require(_isValidSeed(seed), "HugoNFT::seed is invalid");
+        // not to call twice
+        bytes32 seedHash = _getSeedHash(seed);
+        require(_isNewSeed(seedHash), "HugoNFT::seed is used");
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
             "HugoNFT::invalid NFT name length"
@@ -82,8 +86,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
         super._safeMint(to, newTokenId);
 
         _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
-        // todo fn called twice!
-        _isUsedSeed[_getSeedHash(seed)] = true;
+        _isUsedSeed[seedHash] = true;
 
         emit Mint(to, newTokenId, name);
     }
@@ -225,9 +228,7 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     // Checks seed length, validity of trait ids and whether it was used
     function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
         if (seed.length != _attributesAmount) return false;
-        bool areValidTraitIds = _areValidTraitIds(seed);
-        bool isNewSeed = !_isUsedSeed[_getSeedHash(seed)];
-        return areValidTraitIds && isNewSeed;
+        return _areValidTraitIds(seed);
     }
 
     // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
@@ -238,10 +239,16 @@ contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
             // by accessing a trait in some mapping, that stores info whether the trait
             // with the provided id is present or not.
             uint256 numOfTraits = _traitsOfAttribute[i].length;
-            // trait ids start from 1.
-            if (seed[i] > numOfTraits) return false;
+            // trait ids start from 1 and are defined
+            // in a sequential order in contract state.
+            if (seed[i] > numOfTraits || seed[i] == 0) return false;
         }
         return true;
+    }
+
+    // Just for convenience and readability
+    function _isNewSeed(bytes32 seed) private view returns (bool) {
+        return !_isUsedSeed[seed];
     }
 
     // Ids are from 0 to 9999. All in all, 10'000 generated hugo NFTs.

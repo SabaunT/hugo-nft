@@ -8,7 +8,7 @@ contract('HugoNFT', async(accounts) => {
 
     async function getTokenIdsOfAccount(account) {
         let retIds = [];
-        let idsBN = await nftContract.tokensIdsOfOwner.call(account);
+        let idsBN = await nftContract.tokenIdsOfOwner.call(account);
         idsBN.forEach(bnNum => retIds.push(bnNum.toNumber()));
         return retIds;
     }
@@ -45,6 +45,7 @@ contract('HugoNFT', async(accounts) => {
     const BODY_ID = 2;
     const SHIRT_ID = 3;
     const SCARF_ID = 4;
+    const EYE_ID = 5;
 
     const rarity = {
         COMMON: 0,
@@ -354,29 +355,65 @@ contract('HugoNFT', async(accounts) => {
             let totalSupply = await nftContract.totalSupply();
             let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
 
-            assert.ok(isUsed)
             assert.equal(totalSupply.toNumber(), 3)
             assertEqArrays([0,1,2], nftIdsOfAccount1)
         })
 
         // todo test adding a new attribute within minting process
-        // it("adding new attribute", async() => {
-        //     // invalid access
-        //     await expectThrow(
-        //         nftContract.addTraits(
-        //             range(3, 1),
-        //             Array(3).fill("Eyes trait"),
-        //             Array(3).fill(rarity.UNCOMMON),
-        //             {from: minter}
-        //         )
-        //     )
-        //     await nftContract.addTraits(
-        //         range(3, 1),
-        //         Array(3).fill("Eyes trait"),
-        //         Array(3).fill(rarity.UNCOMMON),
-        //         {from: nft_admin}
-        //     )
-        // })
+        it("adding new attribute", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.addNewAttributeWithTraits(
+                    range(3, 1),
+                    Array(3).fill("Eyes trait"),
+                    Array(3).fill(rarity.UNCOMMON),
+                    {from: minter}
+                )
+            )
+            await nftContract.addNewAttributeWithTraits(
+                range(3, 1),
+                Array(3).fill("Eyes trait"),
+                [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
+                {from: nft_admin}
+            )
+            let traitsOfEyeAttribute = await nftContract.getTraitsOfAttribute(EYE_ID);
+            let isPause = await nftContract.isPaused();
+            let attributesAmount = await nftContract.amountOfAttributes();
+
+            assert.equal(traitsOfEyeAttribute.length, 3);
+            assert.ok(isPause);
+            assert.equal(attributesAmount.toNumber(), versionTwoAttributesAmount);
+
+            // Can't, because is paused
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 3, 4, 5, 1], "test", "test", {from: minter})
+            )
+
+            await nftContract.updateAttributeCID(EYE_ID, exampleCID1, {from: nft_admin});
+            isPause = await nftContract.isPaused();
+
+            // old type seed
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 3, 4, 5], "test", "test", {from: minter})
+            )
+            // invalid trait id
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 3, 4, 5, 4], "test", "test", {from: minter})
+            )
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 3, 4, 5, 0], "test", "test", {from: minter})
+            )
+
+            await nftContract.mint(account2, [1, 2, 3, 4, 5, 3], "test", "test", {from: minter})
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
+
+            // isn't paused
+            assert.ok(!isPause);
+            assert.equal(totalSupply.toNumber(), 4);
+            assertEqArrays([3], nftIdsOfAccount2);
+        })
 
         // todo check cap reached
     })
