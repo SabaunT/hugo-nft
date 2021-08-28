@@ -257,7 +257,6 @@ contract('HugoNFT', async(accounts) => {
             assert.ok(isPause);
         })
 
-        // todo test use reserved trait id number when testing adding new attribute
         it("add traits by one", async() => {
             // invalid attribute id
             await expectThrow(
@@ -360,7 +359,7 @@ contract('HugoNFT', async(accounts) => {
         })
 
         // todo test adding a new attribute within minting process
-        it("adding new attribute", async() => {
+        it("adding new attribute and minting", async() => {
             // invalid access
             await expectThrow(
                 nftContract.addNewAttributeWithTraits(
@@ -368,6 +367,15 @@ contract('HugoNFT', async(accounts) => {
                     Array(3).fill("Eyes trait"),
                     Array(3).fill(rarity.UNCOMMON),
                     {from: minter}
+                )
+            )
+            // using reserved trait id
+            await expectThrow(
+                nftContract.addNewAttributeWithTraits(
+                    range(3, 0),
+                    Array(3).fill("Eyes trait"),
+                    Array(3).fill(rarity.UNCOMMON),
+                    {from: nft_admin}
                 )
             )
             await nftContract.addNewAttributeWithTraits(

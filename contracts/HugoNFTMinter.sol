@@ -1,11 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
-
 import "./HugoNFTMetadataManager.sol";
+import "./ERC721EnumarableAbstract.sol";
 
-abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721Enumerable {
+abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstract {
     event Mint(address indexed to, uint256 indexed tokenId, string name);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
@@ -116,7 +115,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721Enumerable {
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721Enumerable, AccessControl)
+        override(ERC721EnumerableAbstract, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
