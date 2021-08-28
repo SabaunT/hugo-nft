@@ -544,4 +544,13 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(nft2.description, "Some new description as well");
         })
     })
+
+    describe("Info fns tests", async() => {
+        it("generated token seeds minted with different amount of attributes have same sizes", async() => {
+            let nft1 = await nftContract.getGeneratedToken(1);
+            // was minted after attribute was added
+            let nft2 = await nftContract.getGeneratedToken(3);
+            assert.equal(nft1.length, nft2.length)
+        })
+    })
 })

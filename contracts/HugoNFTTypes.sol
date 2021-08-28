@@ -8,10 +8,10 @@ contract HugoNFTTypes {
     enum Rarity{COMMON, UNCOMMON, RARE, LEGENDARY}
 
     struct Trait {
+        uint256 attribute;
         uint256 traitId;
         string name;
         Rarity rarity;
-        //todo attribute
     }
 
     struct AttributeIpfsCID {

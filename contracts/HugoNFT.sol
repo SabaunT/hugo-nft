@@ -6,17 +6,15 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-0. TESTS
 1. update traits info/
-2. "info" contracts with fns used by HugoNFT users
-3. error model
-4. questions:
+2. error model
+3. questions:
 - check for duplicate traits (?)
 - script update (?)
 - events needed (?)
 - pub function "isSeedUsed" - is version of seed considered?
 - abi encode to simplify hashing seed (?)
-5. uri for traits
+4. uri for traits
 */
 
 contract HugoNFT is HugoNFTMinter {
@@ -101,7 +99,6 @@ contract HugoNFT is HugoNFTMinter {
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
-    // todo seed length
     function getGeneratedToken(uint256 tokenId)
         external
         view
@@ -111,10 +108,11 @@ contract HugoNFT is HugoNFTMinter {
             _isIdOfGeneratedNFT(tokenId),
             "HugoNFT::provided id out of generated token ids range"
         );
-        return _generatedNFTs[tokenId];
+        GeneratedNFT memory retNFT = _generatedNFTs[tokenId];
+        retNFT.seed = _standardizeSeed(retNFT.seed);
+        return retNFT;
     }
 
-    // todo seed length
     function getExclusiveToken(uint256 tokenId)
         external
         view
@@ -127,8 +125,25 @@ contract HugoNFT is HugoNFTMinter {
         return _exclusiveNFTs[tokenId];
     }
 
+    function getTraitsByRarity(Rarity rarity) external view returns (Trait[] memory) {
+        return _traitsOfRarity[rarity];
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
+    }
+
+    function _standardizeSeed(uint256[] memory seed)
+        private
+        view
+        returns (uint256[] memory)
+    {
+        if (seed.length == _attributesAmount) return seed;
+        uint256[] memory standardizedSeed = new uint256[](_attributesAmount);
+        for (uint256 i = 0; i < _attributesAmount; i++) {
+            standardizedSeed[i] = i > seed.length - 1 ? 0 : seed[i];
+        }
+        return standardizedSeed;
     }
 }
 

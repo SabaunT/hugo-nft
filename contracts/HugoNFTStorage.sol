@@ -21,7 +21,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;
 
-    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE"); // TODO CHANGE TO MINTER_ROLE
+    bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
     bytes32 public constant NFT_ADMIN_ROLE = keccak256("NFT_ADMIN_ROLE");
 
     // Length of the CID in base58 representation
@@ -30,11 +30,11 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     string internal _baseTokenURI;
 
-    // Script that is used to generate NFTs from traits
-    Script[] nftGenerationScripts;
-
     // amount of attributes used to generate NFT
     uint256 internal _attributesAmount;
+
+    // Script that is used to generate NFTs from traits
+    Script[] internal nftGenerationScripts;
 
     // token id => generated hugo.
     mapping(uint256 => GeneratedNFT) internal _generatedNFTs;
@@ -47,6 +47,9 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     // attribute id => traits of the attribute
     mapping(uint256 => Trait[]) internal _traitsOfAttribute;
+
+    // rarity level => traits of the level
+    mapping(Rarity => Trait[]) internal _traitsOfRarity;
 
     // attribute id => ipfs cid of the folder, where traits are stored
     mapping(uint256 => AttributeIpfsCID[]) internal _attributeCIDs;

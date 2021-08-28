@@ -117,7 +117,9 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         );
         require(bytes(name).length > 0, "HugoNFT::empty trait name");
 
-        tA.push(Trait(traitId, name, rarity));
+        Trait memory newTrait = Trait(attributeId, traitId, name, rarity);
+        tA.push(newTrait);
+        _traitsOfRarity[rarity].push(newTrait);
 
         _invalidateLastCIDIfPresent(attributeId);
         if (!isPaused) {
