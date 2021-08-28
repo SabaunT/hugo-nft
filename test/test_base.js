@@ -1,8 +1,20 @@
 const HugoNFT = artifacts.require("HugoNFT");
+const { BN } = require('@openzeppelin/test-helpers');
 
 contract('HugoNFT', async(accounts) => {
     function range(size, startAt = 0) {
         return [...Array(size).keys()].map(i => i + startAt);
+    }
+
+    async function getTokenIdsOfAccount(account) {
+        let retIds = [];
+        let idsBN = await nftContract.tokensIdsOfOwner.call(account);
+        idsBN.forEach(bnNum => retIds.push(bnNum.toNumber()));
+        return retIds;
+    }
+
+    function assertEqArrays(expected, actual) {
+        expect(expected).to.deep.eq(actual)
     }
 
     let expectThrow = async (promise) => {
@@ -77,7 +89,7 @@ contract('HugoNFT', async(accounts) => {
     it("Mints token for account1 fails - paused state", async() => {
         // Contract is in paused state, so you can't call mint fns.
         await expectThrow(
-            nftContract.mint(account1, [0, 0, 1, 1, 0], "Cute Hugo", "Cute hugo minted for the test")
+            nftContract.mint(account1, [1, 1, 1, 1, 1], "Cute Hugo", "Cute hugo minted for the test", {from: minter})
         )
         let isPaused = await nftContract.isPaused();
         assert.ok(isPaused);
@@ -174,6 +186,16 @@ contract('HugoNFT', async(accounts) => {
                     range(10, 1),
                     Array(10).fill("ab"),
                     Array(5).fill(rarity.COMMON),
+                    {from: nft_admin}
+                )
+            )
+            // adding trait with a reserved id = 0
+            await expectThrow(
+                nftContract.addTraits(
+                    HEAD_ID,
+                    range(10, 0),
+                    Array(10).fill("ab"),
+                    Array(10).fill(rarity.COMMON),
                     {from: nft_admin}
                 )
             )
@@ -280,6 +302,62 @@ contract('HugoNFT', async(accounts) => {
             // is not paused
             assert.ok(!isPause);
         })
+    })
+
+    describe("Minting tests", async() => {
+        it("mint new generative nft", async() => {
+            // test for minting in a pause state was done previously
+            // invalid access
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
+            )
+            // mint to address 0
+            await expectThrow(
+                nftContract.mint(zeroAddress, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
+            )
+            // Seed is invalid: wrong length
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 1, 1], "some name", "some descr", {from: minter})
+            )
+            // Seed is invalid: invalid trait id
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 6], "some name", "some descr", {from: minter})
+            )
+            // invalid name length (empty string)
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "", "some descr", {from: minter})
+            )
+            // invalid descr length (empty string)
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "", {from: minter})
+            )
+            // invalid name length (too long string). Array(77).join("a") gives 76 char string
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], Array(77).join("a"), "some descr", {from: minter})
+            )
+            // invalid descr length (too long string). Array(302).join("a") gives 301 char string
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", Array(302).join("a"), {from: minter})
+            )
+
+            // Mint 3 tokens
+            await nftContract.mint(account1, [1, 1, 1, 1, 1], "John Coffey", "Like a drink, but it is written differently", {from: minter});
+
+            // Seed is invalid: mintint with the same seed
+            await expectThrow(
+                nftContract.mint(account2, [1, 1, 1, 1, 1], "John Coffey copy", "Like John Coffey, but copy", {from: minter})
+            )
+
+            await nftContract.mint(account1, [2, 2, 2, 2, 2], "Albert", "Why do people think I'm Einstein?", {from: minter});
+            await nftContract.mint(account1, [3, 3, 3, 3, 3], "Cristiano", "Yes, I'm CR-7", {from: minter});
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+
+            assert.ok(isUsed)
+            assert.equal(totalSupply.toNumber(), 3)
+            assertEqArrays([0,1,2], nftIdsOfAccount1)
+        })
 
         // todo test adding a new attribute within minting process
         // it("adding new attribute", async() => {
@@ -299,5 +377,7 @@ contract('HugoNFT', async(accounts) => {
         //         {from: nft_admin}
         //     )
         // })
+
+        // todo check cap reached
     })
 })

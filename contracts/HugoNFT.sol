@@ -5,7 +5,6 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/token/ERC721/extensions/ERC721Enumerable.sol";
 
 import "./HugoNFTMetadataManager.sol";
-import "./HugoNFTInfo.sol";
 
 /** TODO
 0. TESTS
@@ -18,9 +17,10 @@ import "./HugoNFTInfo.sol";
 - events needed (?)
 - pub function "isSeedUsed" - is version of seed considered?
 5. uri for traits
+6. abi encode to simplify hashing seed
 */
 
-contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
+contract HugoNFT is HugoNFTMetadataManager, ERC721Enumerable {
     event Mint(address indexed to, uint256 indexed tokenId, string name);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
@@ -45,7 +45,6 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
         isPaused = true;
     }
 
-    // todo check!
     function supportsInterface(bytes4 interfaceId)
         public
         view
@@ -55,7 +54,6 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
         return super.supportsInterface(interfaceId);
     }
 
-    // todo check whose beforeTransfer is called
     function mint(
         address to,
         uint256[] calldata seed,
@@ -66,6 +64,10 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
         whenIsNotPaused
         onlyRole(MINTER_ROLE)
     {
+        require(
+            _getGeneratedHugoAmount() < generatedHugoCap,
+            "HugoNFT::supply cap was reached"
+        );
         require(_isValidSeed(seed), "HugoNFT::seed is invalid");
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
@@ -75,20 +77,17 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
             bytes(description).length > 0 && bytes(description).length <= 300,
             "HugoNFT::invalid NFT description length"
         );
-        require(
-            _getGeneratedHugoAmount() < generatedHugoCap,
-            "HugoNFT::supply cap was reached"
-        );
 
         uint256 newTokenId = _getNewIdForGeneratedHugo();
         super._safeMint(to, newTokenId);
 
         _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
+        // todo fn called twice!
+        _isUsedSeed[_getSeedHash(seed)] = true;
 
         emit Mint(to, newTokenId, name);
     }
 
-    // check whose beforeTransfer is called
     function mintExclusive(
         address to,
         string calldata name,
@@ -154,9 +153,74 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
         emit ChangeDescription(tokenId, description);
     }
 
+    /// ----------------------------- Info functions ----------------------------- \\\
+    function amountOfAttributes() external view returns (uint256) {
+        return _attributesAmount;
+    }
+
+    // todo get valid/invalid?
+    function getLastAttributesCIDs() external view returns (string[] memory) {
+        string[] memory retCIDs = new string[](_attributesAmount);
+        for (uint256 i = 0; i < _attributesAmount; i++) {
+            AttributeIpfsCID[] storage aCIDs = _attributeCIDs[i];
+            if (aCIDs.length > 0) {
+                AttributeIpfsCID storage lastCID = aCIDs[aCIDs.length - 1];
+                retCIDs[i] = lastCID.cid;
+            } else {
+                retCIDs[i] = "";
+            }
+        }
+        return retCIDs;
+    }
+
+    function getCIDsOfAttribute(uint256 attributeId)
+        external
+        view
+        returns (AttributeIpfsCID[] memory)
+    {
+        return _attributeCIDs[attributeId];
+    }
+
+    function getTraitsOfAttribute(uint256 attributeId)
+        external
+        view
+        returns (Trait[] memory)
+    {
+        return _traitsOfAttribute[attributeId];
+    }
+
+    /**
+     * @dev Gets tokens owned by the `account`.
+     *
+     * *Warning*. Never call on-chain. Call only using web3 "call" method!
+     */
+    function tokenIdsOfOwner(address account)
+        external
+        view
+        returns (uint256[] memory ownerTokens)
+    {
+        uint256 tokenAmount = balanceOf(account);
+        if (tokenAmount == 0) {
+            return new uint256[](0);
+        } else {
+            uint256[] memory output = new uint256[](tokenAmount);
+            for (uint256 index = 0; index < tokenAmount; index++) {
+                output[index] = tokenOfOwnerByIndex(account, index);
+            }
+            return output;
+        }
+    }
+
+    // todo check seed is correct by checking whether first 5 of them are non zero
+    function isUsedSeed(uint256[] calldata seed) public view returns (bool) {
+        return _isUsedSeed[_getSeedHash(seed)];
+    }
+
     function _baseURI() internal view override returns (string memory) {
         return _baseTokenURI;
     }
+
+    /// -------------------- Private functions for core logic -------------------- \\\
 
     // Checks seed length, validity of trait ids and whether it was used
     function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
@@ -282,25 +346,4 @@ contract HugoNFT is HugoNFTMetadataManager, HugoNFTInfo, ERC721Enumerable {
 //        require(super.ownerOf(id) != address(0), "HugoNFT::token id doesn't exist");
 //        return _tokenDescription[id];
 //    }
-
-//    /**
-//     * @dev Gets tokens owned by the `account`.
-//     *
-//     * *Warning*. Never call on-chain. Call only using web3 "call" method!
-//     */
-//    function tokensOfOwner(address account)
-//        external
-//        view
-//        returns (uint256[] memory ownerTokens)
-//    {
-//        uint256 tokenAmount = balanceOf(account);
-//        if (tokenAmount == 0) {
-//            return new uint256[](0);
-//        } else {
-//            uint256[] memory output = new uint256[](tokenAmount);
-//            for (uint256 index = 0; index < tokenAmount; index++) {
-//                output[index] = tokenOfOwnerByIndex(account, index);
-//            }
-//            return output;
-//        }
 //    }
