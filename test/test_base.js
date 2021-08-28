@@ -282,14 +282,8 @@ contract('HugoNFT', async(accounts) => {
             await nftContract.addTrait(SHIRT_ID, 4, "Tuxedo", rarity.UNCOMMON, {from: nft_admin});
             await nftContract.addTrait(SCARF_ID, 4, "Gryffindor", rarity.RARE, {from: nft_admin});
 
-            await nftContract.addTrait(HEAD_ID, 5, "Punk", rarity.UNCOMMON, {from: nft_admin});
-            await nftContract.addTrait(GLASSES_ID, 5, "Polaroid", rarity.RARE, {from: nft_admin});
-            await nftContract.addTrait(BODY_ID, 5, "Thin", rarity.COMMON, {from: nft_admin});
-            await nftContract.addTrait(SHIRT_ID, 5, "Raped", rarity.COMMON, {from: nft_admin});
-            await nftContract.addTrait(SCARF_ID, 5, "Slytherin", rarity.RARE, {from: nft_admin});
-
             let traitsOfAttribute0 = await nftContract.getTraitsOfAttribute(HEAD_ID);
-            assert.equal(traitsOfAttribute0.length, 5);
+            assert.equal(traitsOfAttribute0.length, 4);
 
             let isPause = await nftContract.isPaused();
             assert.ok(isPause);
@@ -299,6 +293,32 @@ contract('HugoNFT', async(accounts) => {
             let validCIDsArray = Array(versionOneAttributesAmount).fill(exampleCID2);
             await nftContract.updateMultipleAttributesCIDs(validCIDsArray, {from: nft_admin})
 
+            let isPause = await nftContract.isPaused();
+            // is not paused
+            assert.ok(!isPause);
+        })
+
+        it("updating CIDs for 4 of 5 changed attributes still leaves a pause", async() => {
+            await nftContract.addTrait(HEAD_ID, 5, "Punk", rarity.UNCOMMON, {from: nft_admin});
+            await nftContract.addTrait(GLASSES_ID, 5, "Polaroid", rarity.RARE, {from: nft_admin});
+            await nftContract.addTrait(BODY_ID, 5, "Thin", rarity.COMMON, {from: nft_admin});
+            await nftContract.addTrait(SHIRT_ID, 5, "Raped", rarity.COMMON, {from: nft_admin});
+            await nftContract.addTrait(SCARF_ID, 5, "Slytherin", rarity.RARE, {from: nft_admin});
+
+            let isPause = await nftContract.isPaused();
+            assert.ok(isPause);
+
+            let validCIDsArray = Array(versionOneAttributesAmount).fill(exampleCID1);
+            // let attribute id 4 CID be empty
+            validCIDsArray[4] = "";
+            await nftContract.updateMultipleAttributesCIDs(validCIDsArray, {from: nft_admin})
+
+            isPause = await nftContract.isPaused();
+            assert.ok(isPause);
+        })
+
+        it("updating the last CID unpauses contract", async() => {
+            await nftContract.updateAttributeCID(4, exampleCID1, {from: nft_admin});
             let isPause = await nftContract.isPaused();
             // is not paused
             assert.ok(!isPause);
@@ -474,8 +494,8 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(exclusivelyMinted.toNumber(), 3)
         })
     })
-
-    descibe("Change nft name/description tests", async() => {
-        
-    })
+    //
+    // descibe("Change nft name/description tests", async() => {
+    //
+    // })
 })

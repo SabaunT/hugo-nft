@@ -59,12 +59,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
             "HugoNFT::invalid ipfs CID length"
         );
 
-        AttributeIpfsCID[] storage CIDs = _attributeCIDs[attributeId];
-        if (CIDs.length > 0) {
-            AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
-            if (lastCID.isValid) lastCID.isValid = false;
-        }
-        CIDs.push(AttributeIpfsCID(ipfsCID, true));
+        _invalidateLastCIDIfPresent(attributeId);
+        _attributeCIDs[attributeId].push(AttributeIpfsCID(ipfsCID, true));
 
         if (isPaused && checkAllCIDsAreValid()) {
             isPaused = false;
@@ -123,7 +119,10 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
         tA.push(Trait(traitId, name, rarity));
 
-        if (!isPaused) isPaused = true;
+        _invalidateLastCIDIfPresent(attributeId);
+        if (!isPaused) {
+            isPaused = true;
+        }
 
         emit AddNewTrait(attributeId, traitId, name);
     }
@@ -136,5 +135,15 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
             if (!lastCID.isValid) return false;
         }
         return true;
+    }
+
+    function _invalidateLastCIDIfPresent(uint256 attributeId)
+        private
+    {
+        AttributeIpfsCID[] storage CIDs = _attributeCIDs[attributeId];
+        if (CIDs.length > 0) {
+            AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
+            if (lastCID.isValid) lastCID.isValid = false;
+        }
     }
 }
