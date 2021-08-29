@@ -11,7 +11,7 @@ import "./HugoNFTMinter.sol";
 2.2) Function that accepts a bunch if seeds and returns NFTs (can be used to get NFTs of the user)
 3. error model
 4. questions:
-- script update (?)
+- script update -> yes, when attribute added
 - events needed - да и подробнее, чтобы можно было восстановить стейт
 5. какие трэйты имеют такой rarity для данного атрибута
 6. add traits and attributes with CIDs

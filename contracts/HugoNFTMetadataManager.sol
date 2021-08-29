@@ -16,9 +16,9 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         _;
     }
 
-    // todo trait Id не нужны, тк можно просто обозначит верхнюю границу и все. (они же идут последовательно)
+    // todo hash with adding traits and attributes (and script when attribute added)
     function addNewAttributeWithTraits(
-        uint256[] calldata traitIds,
+        uint256 amountOfTraits,
         string[] calldata names,
         Rarity[] calldata rarities
     )
@@ -28,7 +28,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         uint256 newAttributeId = attributesAmount;
         attributesAmount += 1;
 
-        addTraits(newAttributeId, traitIds, names, rarities);
+        addTraits(newAttributeId, amountOfTraits, names, rarities);
 
         emit AddNewAttribute(newAttributeId);
     }
@@ -49,7 +49,6 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         }
     }
 
-    // todo Reverts if one of valid attributes is empty: just for safety not to call the function many times setting the same hash
     function updateAttributeCID(uint256 attributeId, string calldata ipfsCID)
         public
         onlyRole(NFT_ADMIN_ROLE)
@@ -72,7 +71,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
 
     function addTraits(
         uint256 attributeId,
-        uint256[] calldata traitIds,
+        uint256 amountOfTraits,
         string[] calldata names,
         Rarity[] calldata rarities
     )
@@ -80,16 +79,17 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
-            traitIds.length <= MAX_ADDING_TRAITS,
+            amountOfTraits <= MAX_ADDING_TRAITS,
             "HugoNFT::adding traits number exceeds prohibited amount"
         );
         require(
-            traitIds.length == names.length && names.length == rarities.length,
+            amountOfTraits == names.length && names.length == rarities.length,
             "HugoNFT::unequal lengths of trait inner data arrays"
         );
 
-        for (uint256 i = 0; i < traitIds.length; i++) {
-            addTrait(attributeId, traitIds[i], names[i], rarities[i]);
+        uint256 startFromId = _traitsOfAttribute[attributeId].length;
+        for (uint256 i = 0; i < amountOfTraits; i++) {
+            addTrait(attributeId, startFromId + i + 1, names[i], rarities[i]);
         }
     }
 
