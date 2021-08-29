@@ -42,10 +42,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     Script[] internal nftGenerationScripts;
 
     // token id => generated hugo.
-    mapping(uint256 => GeneratedNFT) internal _generatedNFTs;
-
-    // token id => exclusive hugo.
-    mapping(uint256 => ExclusiveNFT) internal _exclusiveNFTs;
+    mapping(uint256 => NFT) internal _NFTs;
 
     // keccak256 of seed => boolean. Shows whether seed was used or not.
     mapping(bytes32 => bool) internal _isUsedSeed;

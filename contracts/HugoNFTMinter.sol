@@ -42,18 +42,18 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         uint256 newTokenId = _getNewIdForGeneratedHugo();
         super._safeMint(to, newTokenId);
 
-        _generatedNFTs[newTokenId] = GeneratedNFT(newTokenId, seed, name, description);
+        _NFTs[newTokenId] = NFT(newTokenId, name, description, seed, "");
         _isUsedSeed[seedHash] = true;
 
         emit Mint(to, newTokenId, name);
     }
 
     // can mint when paused
-    // TODO CID!! смотри на Storage для пояснения
     function mintExclusive(
         address to,
         string calldata name,
-        string calldata description
+        string calldata description,
+        string calldata cid
     )
         external
         onlyRole(MINTER_ROLE)
@@ -66,50 +66,45 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
             bytes(description).length > 0 && bytes(description).length <= 300,
             "HugoNFT::invalid NFT description length"
         );
+        require(
+            bytes(cid).length == IPFS_CID_BYTES_LENGTH,
+            "HugoNFT::invalid ipfs CID length"
+        );
 
         uint256 newTokenId = _getNewIdForExclusiveHugo();
         super._safeMint(to, newTokenId);
         exclusiveNFTsAmount += 1;
 
-        _exclusiveNFTs[newTokenId] = ExclusiveNFT(newTokenId, name, description);
+        _NFTs[newTokenId] = NFT(newTokenId, name, description, new uint256[](0), cid);
 
         emit Mint(to, newTokenId, name);
     }
 
-    function changeNFTName(uint256 tokenId, string calldata name) external {
-        require(
-            ownerOf(tokenId) == _msgSender(),
-            "HugoNFT::token id isn't owned by msg sender"
-        );
+    function changeNFTName(uint256 tokenId, string calldata name)
+        external
+        onlyRole(NFT_ADMIN_ROLE)
+    {
+        require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
             "HugoNFT::invalid NFT name length"
         );
-
-        if (_isIdOfGeneratedNFT(tokenId)) {
-            _generatedNFTs[tokenId].name = name;
-        } else {
-            _exclusiveNFTs[tokenId].name = name;
-        }
+        _NFTs[tokenId].name = name;
 
         emit ChangeName(tokenId, name);
     }
 
-    function changeNFTDescription(uint256 tokenId, string calldata description) external {
-        require(
-            ownerOf(tokenId) == _msgSender(),
-            "HugoNFT::token id isn't owned by msg sender"
-        );
+    function changeNFTDescription(uint256 tokenId, string calldata description)
+        external
+        onlyRole(NFT_ADMIN_ROLE)
+    {
+        require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
         require(
             bytes(description).length > 0 && bytes(description).length <= 300,
             "HugoNFT::invalid NFT description length"
         );
 
-        if (_isIdOfGeneratedNFT(tokenId)) {
-            _generatedNFTs[tokenId].description = description;
-        } else {
-            _exclusiveNFTs[tokenId].description = description;
-        }
+        _NFTs[tokenId].description = description;
 
         emit ChangeDescription(tokenId, description);
     }
@@ -187,5 +182,10 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
             traitIdBytes[i] = traitIdBytes32[i];
         }
         return traitIdBytes;
+    }
+
+    function _tokenExists(uint256 tokenId) private view returns (bool) {
+        NFT storage nft = _NFTs[tokenId];
+        return nft.tokenId == tokenId;
     }
 }

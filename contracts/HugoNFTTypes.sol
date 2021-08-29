@@ -24,19 +24,13 @@ contract HugoNFTTypes {
         bool isValid;
     }
 
-    // TODO Unite Generated and Exclusive in One struct and save in Exclusive pic CID
-    struct GeneratedNFT {
+    struct NFT {
         uint256 tokenId;
+        string name;
+        string description;
         // Seed is an array of trait ids.
         // A 0 value of token id is reserved for "no attribute" in the seed array
         uint256[] seed;
-        string name;
-        string description;
-    }
-
-    struct ExclusiveNFT {
-        uint256 tokenId;
-        string name;
-        string description;
+        string cid;
     }
 }

@@ -7,14 +7,12 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-1. Name changed only by admins
 2. Getting NFTs of a user. 2.1) Mapping (address=>ids[]) <- Remember to change it when transfers happen
 2.2) Function that accepts a bunch if seeds and returns NFTs (can be used to get NFTs of the user)
 3. error model
 4. questions:
 - script update (?)
 - events needed - да и подробнее, чтобы можно было восстановить стейт
-- pub function "isSeedUsed" - is version of seed considered - latest
 5. какие трэйты имеют такой rarity для данного атрибута
 6. add traits and attributes with CIDs
 */
@@ -99,37 +97,26 @@ contract HugoNFT is HugoNFTMinter {
     // Check is done by minter only for seeds with an actual amount of attributes.
     // Therefore for attributes amount of 5 valid seeds like [1,2,3,4] or [1,2,3,4,0]
     // will cause revert
+    // todo discuss and look at todo in minter
     function isUsedSeed(uint256[] calldata seed) external view returns (bool) {
         require(_isValidSeed(seed), "HugoNFT::an invalid seed was provided");
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
-    function getGeneratedToken(uint256 tokenId)
+    // todo discuss, should fail or return empty one
+    // if fail add require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
+    // and change 116 only to _isIdOfGeneratedNFT(tokenId))
+    function getToken(uint256 tokenId)
         external
         view
-        returns (GeneratedNFT memory)
+        returns (NFT memory)
     {
-        require(
-            _isIdOfGeneratedNFT(tokenId),
-            "HugoNFT::provided id out of generated token ids range"
-        );
-        // todo test non existent
-        GeneratedNFT memory retNFT = _generatedNFTs[tokenId];
-        retNFT.seed = _standardizeSeed(retNFT.seed);
+        NFT memory retNFT = _NFTs[tokenId];
+        // first check is for nft existence
+        if (tokenId == retNFT.tokenId && _isIdOfGeneratedNFT(tokenId)) {
+            retNFT.seed = _standardizeSeed(retNFT.seed);
+        }
         return retNFT;
-    }
-
-    function getExclusiveToken(uint256 tokenId)
-        external
-        view
-        returns (ExclusiveNFT memory)
-    {
-        require(
-            !_isIdOfGeneratedNFT(tokenId),
-            "HugoNFT::provided id out of exclusive token ids range"
-        );
-        // todo test non existent
-        return _exclusiveNFTs[tokenId];
     }
 
     function getTraitsByRarity(Rarity rarity) external view returns (Trait[] memory) {
