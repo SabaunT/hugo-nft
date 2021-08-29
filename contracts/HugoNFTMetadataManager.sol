@@ -16,6 +16,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         _;
     }
 
+    // todo trait Id не нужны, тк можно просто обозначит верхнюю границу и все. (они же идут последовательно)
     function addNewAttributeWithTraits(
         uint256[] calldata traitIds,
         string[] calldata names,
@@ -24,8 +25,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
-        uint256 newAttributeId = _attributesAmount;
-        _attributesAmount += 1;
+        uint256 newAttributeId = attributesAmount;
+        attributesAmount += 1;
 
         addTraits(newAttributeId, traitIds, names, rarities);
 
@@ -39,7 +40,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
-            CIDs.length <= _attributesAmount,
+            CIDs.length <= attributesAmount,
             "HugoNFT::invalid cids array length"
         );
         for (uint256 i = 0; i < CIDs.length; i++) {
@@ -53,14 +54,14 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         public
         onlyRole(NFT_ADMIN_ROLE)
     {
-        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
         require(
             bytes(ipfsCID).length == IPFS_CID_BYTES_LENGTH,
             "HugoNFT::invalid ipfs CID length"
         );
 
         _invalidateLastCIDIfPresent(attributeId);
-        _attributeCIDs[attributeId].push(AttributeIpfsCID(ipfsCID, true));
+        _CIDsOfAttribute[attributeId].push(AttributeIpfsCID(ipfsCID, true));
 
         if (isPaused && checkAllCIDsAreValid()) {
             isPaused = false;
@@ -101,7 +102,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         public
         onlyRole(NFT_ADMIN_ROLE)
     {
-        require(attributeId < _attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
         require(
             traitId != 0,
             "HugoNFT::0 trait id is reserved for 'no attribute' in seed"
@@ -130,8 +131,8 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     }
 
     function checkAllCIDsAreValid() private view returns (bool) {
-        for (uint256 i = 0; i < _attributesAmount; i++) {
-            AttributeIpfsCID[] storage CIDs = _attributeCIDs[i];
+        for (uint256 i = 0; i < attributesAmount; i++) {
+            AttributeIpfsCID[] storage CIDs = _CIDsOfAttribute[i];
             if (CIDs.length == 0) return false;
             AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
             if (!lastCID.isValid) return false;
@@ -142,7 +143,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     function _invalidateLastCIDIfPresent(uint256 attributeId)
         private
     {
-        AttributeIpfsCID[] storage CIDs = _attributeCIDs[attributeId];
+        AttributeIpfsCID[] storage CIDs = _CIDsOfAttribute[attributeId];
         if (CIDs.length > 0) {
             AttributeIpfsCID storage lastCID = CIDs[CIDs.length - 1];
             if (lastCID.isValid) lastCID.isValid = false;

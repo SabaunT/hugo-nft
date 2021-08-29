@@ -18,6 +18,9 @@ contract HugoNFTStorage is HugoNFTTypes {
     // Amount of exclusive NFTs
     uint256 public exclusiveNFTsAmount;
 
+    // amount of attributes used to generate NFT
+    uint256 public attributesAmount;
+
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;
 
@@ -30,8 +33,10 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     string internal _baseTokenURI;
 
-    // amount of attributes used to generate NFT
-    uint256 internal _attributesAmount;
+    // todo if we decide to allow minting with any valid attributes amount
+    // Min amount of attributes that an NFT should have.
+    // Defined by initial value of attributesAmount
+//    uint256 internal minAttributesAmount;
 
     // Script that is used to generate NFTs from traits
     Script[] internal nftGenerationScripts;
@@ -52,7 +57,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     mapping(Rarity => Trait[]) internal _traitsOfRarity;
 
     // attribute id => ipfs cid of the folder, where traits are stored
-    mapping(uint256 => AttributeIpfsCID[]) internal _attributeCIDs;
+    mapping(uint256 => AttributeIpfsCID[]) internal _CIDsOfAttribute;
 }
 
 // There is a contract in order of values in seeds, cids, and such - the layout is

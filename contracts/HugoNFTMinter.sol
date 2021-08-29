@@ -11,6 +11,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
 
     constructor() ERC721("HUGO", "HUGO") {}
 
+    // TODO should allow minting with seed, which will have any(!) valid length (with zeroes)
     function mint(
         address to,
         uint256[] calldata seed,
@@ -48,6 +49,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     }
 
     // can mint when paused
+    // TODO CID!! смотри на Storage для пояснения
     function mintExclusive(
         address to,
         string calldata name,
@@ -136,8 +138,8 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     }
 
     // Checks seed length, validity of trait ids and whether it was used
-    function _isValidSeed(uint256[] calldata seed) private view returns (bool) {
-        if (seed.length != _attributesAmount) return false;
+    function _isValidSeed(uint256[] calldata seed) internal view returns (bool) {
+        if (seed.length != attributesAmount) return false;
         return _areValidTraitIds(seed);
     }
 

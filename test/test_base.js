@@ -407,7 +407,7 @@ contract('HugoNFT', async(accounts) => {
             )
             let traitsOfEyeAttribute = await nftContract.getTraitsOfAttribute(EYE_ID);
             let isPause = await nftContract.isPaused();
-            let attributesAmount = await nftContract.amountOfAttributes();
+            let attributesAmount = await nftContract.attributesAmount();
 
             assert.equal(traitsOfEyeAttribute.length, 3);
             assert.ok(isPause);
@@ -545,12 +545,76 @@ contract('HugoNFT', async(accounts) => {
         })
     })
 
+    // todo test throws
     describe("Info fns tests", async() => {
+        it("getting CIDs for an attribute", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.getCIDsOfAttribute(6)
+            )
+            // When trait for EYE attribute was added, we didn't update the CID
+            let CIDsOfEye = await nftContract.getCIDsOfAttribute(5);
+            let lastEyeCID = CIDsOfEye[CIDsOfEye.length - 1];
+            let CIDsOfScarf = await nftContract.getCIDsOfAttribute(4);
+            let lastScarfCID = CIDsOfScarf[CIDsOfScarf.length - 1];
+
+            assert.ok(!lastEyeCID.isValid);
+            assert.ok(lastScarfCID.isValid);
+        })
+
+        it("getting traits of an attribute", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.getTraitsOfAttribute(6)
+            )
+            let traitsOfEye = await nftContract.getTraitsOfAttribute(5);
+            assert.equal(traitsOfEye.length, 4);
+        })
+
+        it("checking seed is used", async() => {
+            // Read fn docs to understand why it returns an error with such seeds
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 1])
+            )
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 1, 5])
+            )
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 1, 0])
+            )
+            let isUsed1 = await nftContract.isUsedSeed([3, 1, 2, 1, 1,  4])
+            let isUsed2 = await nftContract.isUsedSeed([1, 2, 3, 4, 5, 3])
+
+            // not used
+            assert.ok(!isUsed1)
+            // used
+            assert.ok(isUsed2)
+        })
+
         it("generated token seeds minted with different amount of attributes have same sizes", async() => {
             let nft1 = await nftContract.getGeneratedToken(1);
             // was minted after attribute was added
             let nft2 = await nftContract.getGeneratedToken(3);
             assert.equal(nft1.length, nft2.length)
+        })
+
+        it("get trait CID address", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.traitIpfsPath(6, 3)
+            )
+            // invalid trait id
+            await expectThrow(
+                nftContract.traitIpfsPath(HEAD_ID, 0)
+            )
+            await expectThrow(
+                nftContract.traitIpfsPath(EYE_ID, 5)
+            )
+            let trait1Address = await nftContract.traitIpfsPath(HEAD_ID, 3);
+            assert.equal("ipfs://".concat(exampleCID1, "/", "3"), trait1Address);
+            // When trait for EYE attribute was added, we didn't update the CID
+            let trait2Address = await nftContract.traitIpfsPath(EYE_ID, 1);
+            assert.equal(trait2Address, "");
         })
     })
 })
