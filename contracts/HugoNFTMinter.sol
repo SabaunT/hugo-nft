@@ -11,7 +11,6 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
 
     constructor() ERC721("HUGO", "HUGO") {}
 
-    // TODO should allow minting with seed, which will have any(!) valid length (with zeroes)
     function mint(
         address to,
         uint256[] calldata seed,
@@ -47,7 +46,6 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         emit Mint(to, newTokenId, name);
     }
 
-    // can mint when paused
     function mintExclusive(
         address to,
         string calldata name,
@@ -118,23 +116,39 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     }
 
     // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
-    function _getSeedHash(uint256[] calldata seed) internal pure returns (bytes32) {
-        bytes memory seedBytes = _traitIdToBytes(seed[0]);
-        for (uint256 i = 1; i < seed.length; i++) {
-            uint256 traitId = seed[i];
+    // Should be called only after seed was validated!
+    // Returns the hash of the the same input seed, but with one modification:
+    // it has right trailing zeroes in it truncated.
+    // For example:
+    // 1. _getSeedHash([1,2,3,0,0]) -> hash([1,2,3])
+    // 2. _getSeedHash([1,2,3,0,1]) -> hash([1,2,3,0,1])
+    function _getSeedHash(uint256[] calldata validSeed) internal view returns (bytes32) {
+        uint256[] memory validSeedNoTrailingZeroes = _getWithoutTrailingZeroes(validSeed);
+        bytes memory seedBytes = new bytes(32 * validSeedNoTrailingZeroes.length);
+        for (uint256 i = 0; i < validSeedNoTrailingZeroes.length; i++) {
+            uint256 traitId = validSeedNoTrailingZeroes[i];
+            // If seed wasn't valid, then this check could cause problems
+            // like skipping an attribute of first `minAttributesAmount` core ones.
             seedBytes = bytes.concat(seedBytes, bytes32(traitId));
         }
         return keccak256(seedBytes);
+    }
+
+    // Checks seed length, validity of trait ids and whether it was used
+    function _isValidSeed(uint256[] calldata seed) internal view returns (bool) {
+        if (seed.length > attributesAmount || seed.length < minAttributesAmount) {
+            return false;
+        }
+        return _areValidTraitIds(seed);
     }
 
     function _isIdOfGeneratedNFT(uint256 tokenId) internal pure returns (bool) {
         return tokenId < generatedHugoCap;
     }
 
-    // Checks seed length, validity of trait ids and whether it was used
-    function _isValidSeed(uint256[] calldata seed) internal view returns (bool) {
-        if (seed.length != attributesAmount) return false;
-        return _areValidTraitIds(seed);
+    function _tokenExists(uint256 tokenId) internal view returns (bool) {
+        NFT storage nft = _NFTs[tokenId];
+        return nft.tokenId == tokenId;
     }
 
     // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
@@ -145,9 +159,13 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
             // by accessing a trait in some mapping, that stores info whether the trait
             // with the provided id is present or not.
             uint256 numOfTraits = _traitsOfAttribute[i].length;
-            // trait ids start from 1 and are defined
-            // in a sequential order in contract state.
-            if (seed[i] > numOfTraits || seed[i] == 0) return false;
+            // Trait ids start from 1 and are defined in a sequential order.
+            // Zero trait id is possible - it means that generating NFT won't have
+            // such attribute. It's possible only for those attributes, which were
+            // added after deployment.
+            if ((i < minAttributesAmount && seed[i] == 0) || seed[i] > numOfTraits) {
+                return false;
+            }
         }
         return true;
     }
@@ -173,18 +191,17 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         return generatedHugoCap + exclusiveNFTsAmount;
     }
 
-    // todo move to utils
-    function _traitIdToBytes(uint256 traitId) private pure returns (bytes memory) {
-        bytes32 traitIdBytes32 = bytes32(traitId);
-        bytes memory traitIdBytes = new bytes(32);
-        for (uint256 i = 0; i < 32; i++) {
-            traitIdBytes[i] = traitIdBytes32[i];
+    function _getWithoutTrailingZeroes(uint256[] calldata validSeed)
+        private
+        view
+        returns
+        (uint256[] memory)
+    {
+        uint256 end = validSeed.length;
+        for (uint256 i = validSeed.length - 1; i >= minAttributesAmount; i--) {
+            if (validSeed[i] != 0) { break ;}
+            end = i;
         }
-        return traitIdBytes;
-    }
-
-    function _tokenExists(uint256 tokenId) private view returns (bool) {
-        NFT storage nft = _NFTs[tokenId];
-        return nft.tokenId == tokenId;
+        return validSeed[:end];
     }
 }

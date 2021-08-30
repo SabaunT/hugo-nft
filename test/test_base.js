@@ -352,125 +352,119 @@ contract('HugoNFT', async(accounts) => {
         })
     })
 
-    // describe("Minting tests", async() => {
-    //     it("mint new generative nft", async() => {
-    //         // test for minting in a pause state was done previously
-    //         // invalid access
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
-    //         )
-    //         // mint to address 0
-    //         await expectThrow(
-    //             nftContract.mint(zeroAddress, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
-    //         )
-    //         // Seed is invalid: wrong length
-    //         await expectThrow(
-    //             nftContract.mint(account1, [1, 2, 1, 1], "some name", "some descr", {from: minter})
-    //         )
-    //         // Seed is invalid: invalid trait id
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 6], "some name", "some descr", {from: minter})
-    //         )
-    //         // invalid name length (empty string)
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 5], "", "some descr", {from: minter})
-    //         )
-    //         // invalid descr length (empty string)
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "", {from: minter})
-    //         )
-    //         // invalid name length (too long string). Array(77).join("a") gives 76 char string
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 5], Array(77).join("a"), "some descr", {from: minter})
-    //         )
-    //         // invalid descr length (too long string). Array(302).join("a") gives 301 char string
-    //         await expectThrow(
-    //             nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", Array(302).join("a"), {from: minter})
-    //         )
-    //
-    //         // Mint 3 tokens
-    //         await nftContract.mint(account1, [1, 1, 1, 1, 1], "John Coffey", "Like a drink, but it is written differently", {from: minter});
-    //
-    //         // Seed is invalid: mintint with the same seed
-    //         await expectThrow(
-    //             nftContract.mint(account2, [1, 1, 1, 1, 1], "John Coffey copy", "Like John Coffey, but copy", {from: minter})
-    //         )
-    //
-    //         await nftContract.mint(account1, [2, 2, 2, 2, 2], "Albert", "Why do people think I'm Einstein?", {from: minter});
-    //         await nftContract.mint(account1, [3, 3, 3, 3, 3], "Cristiano", "Yes, I'm CR-7", {from: minter});
-    //
-    //         let totalSupply = await nftContract.totalSupply();
-    //         let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
-    //
-    //         assert.equal(totalSupply.toNumber(), 3)
-    //         assertEqArrays([0,1,2], nftIdsOfAccount1)
-    //     })
-    //
-    //
-    //     it("adding new attribute and minting", async() => {
-    //         // invalid access
-    //         await expectThrow(
-    //             nftContract.addNewAttributeWithTraits(
-    //                 range(3, 1),
-    //                 Array(3).fill("Eyes trait"),
-    //                 Array(3).fill(rarity.UNCOMMON),
-    //                 {from: minter}
-    //             )
-    //         )
-    //         // using reserved trait id
-    //         await expectThrow(
-    //             nftContract.addNewAttributeWithTraits(
-    //                 range(3, 0),
-    //                 Array(3).fill("Eyes trait"),
-    //                 Array(3).fill(rarity.UNCOMMON),
-    //                 {from: nft_admin}
-    //             )
-    //         )
-    //         await nftContract.addNewAttributeWithTraits(
-    //             range(3, 1),
-    //             Array(3).fill("Eyes trait"),
-    //             [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
-    //             {from: nft_admin}
-    //         )
-    //         let traitsOfEyeAttribute = await nftContract.getTraitsOfAttribute(EYE_ID);
-    //         let isPause = await nftContract.isPaused();
-    //         let attributesAmount = await nftContract.attributesAmount();
-    //
-    //         assert.equal(traitsOfEyeAttribute.length, 3);
-    //         assert.ok(isPause);
-    //         assert.equal(attributesAmount.toNumber(), versionTwoAttributesAmount);
-    //
-    //         // Can't, because is paused
-    //         await expectThrow(
-    //             nftContract.mint(account1, [1, 2, 3, 4, 5, 1], "test", "test", {from: minter})
-    //         )
-    //
-    //         await nftContract.updateAttributeCID(EYE_ID, exampleCID1, {from: nft_admin});
-    //         isPause = await nftContract.isPaused();
-    //
-    //         // old type seed
-    //         await expectThrow(
-    //             nftContract.mint(account1, [1, 2, 3, 4, 5], "test", "test", {from: minter})
-    //         )
-    //         // invalid trait id
-    //         await expectThrow(
-    //             nftContract.mint(account1, [1, 2, 3, 4, 5, 4], "test", "test", {from: minter})
-    //         )
-    //         await expectThrow(
-    //             nftContract.mint(account1, [1, 2, 3, 4, 5, 0], "test", "test", {from: minter})
-    //         )
-    //
-    //         await nftContract.mint(account2, [1, 2, 3, 4, 5, 3], "test", "test", {from: minter})
-    //
-    //         let totalSupply = await nftContract.totalSupply();
-    //         let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
-    //
-    //         // isn't paused
-    //         assert.ok(!isPause);
-    //         assert.equal(totalSupply.toNumber(), 4);
-    //         assertEqArrays([3], nftIdsOfAccount2);
-    //     })
-    // })
+    describe("Minting tests", async() => {
+        it("mint new generative nft", async() => {
+            // test for minting in a pause state was done previously
+            // invalid access
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
+            )
+            // mint to address 0
+            await expectThrow(
+                nftContract.mint(zeroAddress, [5, 5, 5, 5, 5], "some name", "some descr", {from: minter})
+            )
+            // Seed is invalid: too short
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 1, 1], "some name", "some descr", {from: minter})
+            )
+            // Seed is invalid: too long
+            await expectThrow(
+                nftContract.mint(account1, [1, 2, 1, 1, 1, 2], "some name", "some descr", {from: minter})
+            )
+            // Seed is invalid: unexistent trait id
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 8], "some name", "some descr", {from: minter})
+            )
+            // Seed is invalid: zero id for core attribute
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 7, 0], "some name", "some descr", {from: minter})
+            )
+            // invalid name length (empty string)
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "", "some descr", {from: minter})
+            )
+            // invalid descr length (empty string)
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "", {from: minter})
+            )
+            // invalid name length (too long string). Array(77).join("a") gives 76 char string
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], Array(77).join("a"), "some descr", {from: minter})
+            )
+            // invalid descr length (too long string). Array(302).join("a") gives 301 char string
+            await expectThrow(
+                nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", Array(302).join("a"), {from: minter})
+            )
+
+            // Mint 3 tokens
+            await nftContract.mint(account1, [1, 1, 1, 1, 1], "John Coffey", "Like a drink, but it is written differently", {from: minter});
+
+            // Seed is invalid: minting with the same seed
+            await expectThrow(
+                nftContract.mint(account2, [1, 1, 1, 1, 1], "John Coffey copy", "Like John Coffey, but copy", {from: minter})
+            )
+
+            await nftContract.mint(account1, [2, 2, 2, 2, 2], "Albert", "Why do people think I'm Einstein?", {from: minter});
+            await nftContract.mint(account1, [3, 3, 3, 3, 7], "Cristiano", "Yes, I'm CR-7", {from: minter});
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+
+            assert.equal(totalSupply.toNumber(), 3)
+            assertEqArrays([0,1,2], nftIdsOfAccount1)
+        })
+
+        it("adding new attribute and minting", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.addNewAttributeWithTraits(
+                    3,
+                    Array(3).fill("Eyes trait"),
+                    Array(3).fill(rarity.UNCOMMON),
+                    exampleCID2,
+                    {from: minter}
+                )
+            )
+            await nftContract.addNewAttributeWithTraits(
+                3,
+                Array(3).fill("Eyes trait"),
+                [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
+                exampleCID2,
+                {from: nft_admin}
+            )
+            let traitsOfEyeAttribute = await nftContract.getTraitsOfAttribute(EYE_ID);
+            let attributesAmount = await nftContract.attributesAmount();
+
+            assert.equal(traitsOfEyeAttribute.length, 3);
+            assert.equal(attributesAmount.toNumber(), versionTwoAttributesAmount);
+
+            // can mint with an old type seed
+            await nftContract.mint(account2, [1, 2, 3, 4, 5], "test", "test", {from: minter})
+            // can't mint because hash for [1, 2, 3, 4, 5, 0] is a hash([1, 2, 3, 4, 5])
+            await expectThrow(
+                nftContract.mint(account2, [1, 2, 3, 4, 5, 0], "test", "test", {from: minter})
+            )
+            // can't mint because [1,1,1,1,1] was minted for account1
+            await expectThrow(
+                nftContract.mint(account2, [1, 1, 1, 1, 1, 0], "test", "test", {from: minter})
+            )
+            // can mint with 0 id for a new trait id
+            await nftContract.mint(account2, [1, 2, 3, 4, 4, 0], "test", "test", {from: minter})
+            // invalid trait id for an eye attribute
+            await expectThrow(
+                nftContract.mint(account2, [1, 2, 3, 4, 5, 4], "test", "test", {from: minter})
+            )
+
+            await nftContract.mint(account2, [1, 2, 3, 4, 5, 3], "test", "test", {from: minter})
+            await nftContract.mint(account2, [2, 2, 3, 4, 5, 3], "test", "test", {from: minter})
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
+
+            assert.equal(totalSupply.toNumber(), 7);
+            assertEqArrays([3, 4, 5, 6], nftIdsOfAccount2);
+        })
+    })
     //
     // describe("Minting exclusive tests", async() => {
     //     it("can mint exclusive when paused", async() => {

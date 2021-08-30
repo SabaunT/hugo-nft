@@ -11,7 +11,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name);
     event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
 
-    // todo hash with adding traits and attributes (and script when attribute added)
+    // todo update script with a new attribute
     function addNewAttributeWithTraits(
         uint256 amountOfTraits,
         string[] calldata names,

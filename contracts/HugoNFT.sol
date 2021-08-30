@@ -47,6 +47,7 @@ contract HugoNFT is HugoNFTMinter {
         _setupRole(NFT_ADMIN_ROLE, _msgSender());
 
         _baseTokenURI = baseTokenURI;
+        minAttributesAmount = initialAmountOfAttributes;
         attributesAmount = initialAmountOfAttributes;
         nftGenerationScripts.push(Script(script, true));
 
@@ -104,10 +105,6 @@ contract HugoNFT is HugoNFTMinter {
         }
     }
 
-    // Check is done by minter only for seeds with an actual amount of attributes.
-    // Therefore for attributes amount of 5 valid seeds like [1,2,3,4] or [1,2,3,4,0]
-    // will cause revert
-    // todo discuss and look at todo in minter
     function isUsedSeed(uint256[] calldata seed) external view returns (bool) {
         require(_isValidSeed(seed), "HugoNFT::an invalid seed was provided");
         return _isUsedSeed[_getSeedHash(seed)];
@@ -121,10 +118,13 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (NFT memory)
     {
-        NFT memory retNFT = _NFTs[tokenId];
-        // first check is for nft existence
-        if (tokenId == retNFT.tokenId && _isIdOfGeneratedNFT(tokenId)) {
+        // default NFT
+        NFT memory retNFT;
+        if (_tokenExists(tokenId) && _isIdOfGeneratedNFT(tokenId)) {
+            retNFT = _NFTs[tokenId];
             retNFT.seed = _standardizeSeed(retNFT.seed);
+        } else {
+            retNFT = NFT(0, "", "", new uint256[](0), "");
         }
         return retNFT;
     }

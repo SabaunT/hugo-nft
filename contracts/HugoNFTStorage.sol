@@ -27,10 +27,10 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     string internal _baseTokenURI;
 
-    // todo if we decide to allow minting with any valid attributes amount
     // Min amount of attributes that an NFT should have.
     // Defined by initial value of attributesAmount
-//    uint256 internal minAttributesAmount;
+    // Set only once in constructor.
+    uint256 internal minAttributesAmount;
 
     // Script that is used to generate NFTs from traits
     Script[] internal nftGenerationScripts;
