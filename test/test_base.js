@@ -492,9 +492,7 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(totalSupply.toNumber(), 10);
             assertEqArrays([0,1,2,7,8,9], nftIdsOfAccount1);
         })
-    })
 
-    describe("Minting exclusive tests", async() => {
         it("can mint exclusive", async() => {
             // invalid access
             await expectThrow(
@@ -544,65 +542,65 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(exclusivelyMinted.toNumber(), 3)
         })
     })
-    //
-    // describe("Change nft name/description tests", async() => {
-    //     it("changes nft name", async() => {
-    //         // invalid access
-    //         await expectThrow(
-    //             nftContract.changeNFTName(1, "new name", {from: account1})
-    //         )
-    //         // non existent token
-    //         await expectThrow(
-    //             nftContract.changeNFTName(10, "new name", {from: nft_admin})
-    //         )
-    //         // empty string
-    //         await expectThrow(
-    //             nftContract.changeNFTName(1, "", {from: nft_admin})
-    //         )
-    //         // too long string
-    //         await expectThrow(
-    //             nftContract.changeNFTName(1, Array(77).join("a"), {from: nft_admin})
-    //         )
-    //
-    //         await nftContract.changeNFTName(1, "Some new name", {from: nft_admin});
-    //         await nftContract.changeNFTName(10000, "Some new name as well", {from: nft_admin});
-    //
-    //         let nft1 = await nftContract.getNFT(1);
-    //         let nft2 = await nftContract.getNFT(10000);
-    //
-    //         assert.equal(nft1.name, "Some new name");
-    //         assert.equal(nft2.name, "Some new name as well");
-    //     })
-    //
-    //     it("changes nft descriptions", async() => {
-    //         // invalid access
-    //         await expectThrow(
-    //             nftContract.changeNFTDescription(1, "new description", {from: account1})
-    //         )
-    //         // non existent token
-    //         await expectThrow(
-    //             nftContract.changeNFTDescription(10, "new description", {from: nft_admin})
-    //         )
-    //         // empty string
-    //         await expectThrow(
-    //             nftContract.changeNFTDescription(1, "", {from: nft_admin})
-    //         )
-    //         // too long string
-    //         await expectThrow(
-    //             nftContract.changeNFTDescription(1, Array(302).join("a"), {from: nft_admin})
-    //         )
-    //
-    //         await nftContract.changeNFTDescription(1, "Some new description", {from: nft_admin});
-    //         await nftContract.changeNFTDescription(10000, "Some new description as well", {from: nft_admin});
-    //
-    //         let nft1 = await nftContract.getNFT(1);
-    //         let nft2 = await nftContract.getNFT(10000);
-    //
-    //         assert.equal(nft1.description, "Some new description");
-    //         assert.equal(nft2.description, "Some new description as well");
-    //     })
-    // })
-    //
+
+    describe("Change nft name/description tests", async() => {
+        it("changes nft name", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.changeNFTName(1, "new name", {from: account1})
+            )
+            // non existent token
+            await expectThrow(
+                nftContract.changeNFTName(10, "new name", {from: nft_admin})
+            )
+            // empty string
+            await expectThrow(
+                nftContract.changeNFTName(1, "", {from: nft_admin})
+            )
+            // too long string
+            await expectThrow(
+                nftContract.changeNFTName(1, Array(77).join("a"), {from: nft_admin})
+            )
+
+            await nftContract.changeNFTName(1, "Some new name", {from: nft_admin});
+            await nftContract.changeNFTName(10000, "Some new name as well", {from: nft_admin});
+
+            let nft1 = await nftContract.getNFT(1);
+            let nft2 = await nftContract.getNFT(10000);
+
+            assert.equal(nft1.name, "Some new name");
+            assert.equal(nft2.name, "Some new name as well");
+        })
+
+        it("changes nft descriptions", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.changeNFTDescription(1, "new description", {from: account1})
+            )
+            // non existent token
+            await expectThrow(
+                nftContract.changeNFTDescription(10, "new description", {from: nft_admin})
+            )
+            // empty string
+            await expectThrow(
+                nftContract.changeNFTDescription(1, "", {from: nft_admin})
+            )
+            // too long string
+            await expectThrow(
+                nftContract.changeNFTDescription(1, Array(302).join("a"), {from: nft_admin})
+            )
+
+            await nftContract.changeNFTDescription(1, "Some new description", {from: nft_admin});
+            await nftContract.changeNFTDescription(10000, "Some new description as well", {from: nft_admin});
+
+            let nft1 = await nftContract.getNFT(1);
+            let nft2 = await nftContract.getNFT(10000);
+
+            assert.equal(nft1.description, "Some new description");
+            assert.equal(nft2.description, "Some new description as well");
+        })
+    })
+
     // // todo test throws
     // describe("Info fns tests", async() => {
     //     it("getting CIDs for an attribute", async() => {
