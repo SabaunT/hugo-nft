@@ -19,7 +19,6 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         string calldata description
     )
         external
-        whenIsNotPaused
         onlyRole(MINTER_ROLE)
     {
         require(

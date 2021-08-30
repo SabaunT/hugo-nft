@@ -9,12 +9,6 @@ import "./HugoNFTTypes.sol";
  * 3. Script should be changed in attribute manager
  */
 contract HugoNFTStorage is HugoNFTTypes {
-    // The flag that indicates whether main contract procedures (minting) can work.
-    // It is set to false in several situations:
-    // 1. One of attributes has no traits
-    // 2. IPFS hash of attribute isn't set or is invalid due to adding new trait
-    bool public isPaused;
-
     // Amount of exclusive NFTs
     uint256 public exclusiveNFTsAmount;
 
@@ -50,11 +44,8 @@ contract HugoNFTStorage is HugoNFTTypes {
     // attribute id => traits of the attribute
     mapping(uint256 => Trait[]) internal _traitsOfAttribute;
 
-    // rarity level => traits of the level
-    mapping(Rarity => Trait[]) internal _traitsOfRarity;
-
     // attribute id => ipfs cid of the folder, where traits are stored
-    mapping(uint256 => AttributeIpfsCID[]) internal _CIDsOfAttribute;
+    mapping(uint256 => string[]) internal _CIDsOfAttribute;
 }
 
 // There is a contract in order of values in seeds, cids, and such - the layout is

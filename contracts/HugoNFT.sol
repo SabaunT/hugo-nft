@@ -14,50 +14,60 @@ import "./HugoNFTMinter.sol";
 - script update -> yes, when attribute added
 - events needed - да и подробнее, чтобы можно было восстановить стейт
 5. какие трэйты имеют такой rarity для данного атрибута
-6. add traits and attributes with CIDs
 */
 
 // This contract mainly stores view functions
 contract HugoNFT is HugoNFTMinter {
     using Strings for uint256;
 
+    // @notice Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
     constructor(
         string memory baseTokenURI,
         uint256 initialAmountOfAttributes,
-        string memory script
+        string memory script,
+        // attributes and traits params
+        uint256[] memory traitAmountForEachAttribute,
+        string[][] memory traitNamesForEachAttribute,
+        Rarity[][] memory raritiesForEachAttribute,
+        string[] memory CIDsForEachAttribute
     )
     {
         require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
         require(initialAmountOfAttributes > 0, "HugoNFT::initial attributes amount is 0");
         require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
+        require(
+            (initialAmountOfAttributes == traitAmountForEachAttribute.length) &&
+            (initialAmountOfAttributes == traitNamesForEachAttribute.length) &&
+            (initialAmountOfAttributes == raritiesForEachAttribute.length) &&
+            (initialAmountOfAttributes == CIDsForEachAttribute.length),
+            "HugoNFT::disproportion in provided attributes and traits data"
+        );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(NFT_ADMIN_ROLE, _msgSender());
 
         _baseTokenURI = baseTokenURI;
         attributesAmount = initialAmountOfAttributes;
         nftGenerationScripts.push(Script(script, true));
 
-        isPaused = true;
-    }
-
-    function getAttributesLastCIDs() external view returns (string[] memory) {
-        string[] memory retCIDs = new string[](attributesAmount);
-        for (uint256 i = 0; i < attributesAmount; i++) {
-            AttributeIpfsCID[] storage aCIDs = _CIDsOfAttribute[i];
-            if (aCIDs.length > 0) {
-                AttributeIpfsCID storage lastCID = aCIDs[aCIDs.length - 1];
-                retCIDs[i] = lastCID.cid;
-            } else {
-                retCIDs[i] = "";
-            }
+        // Very important to set them in constructor,
+        // because otherwise contract should be paused until all
+        // attributes have their traits set
+        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
+            addTraits(
+                i,
+                traitAmountForEachAttribute[i],
+                traitNamesForEachAttribute[i],
+                raritiesForEachAttribute[i],
+                CIDsForEachAttribute[i]
+            );
         }
-        return retCIDs;
     }
 
     function getCIDsOfAttribute(uint256 attributeId)
         external
         view
-        returns (AttributeIpfsCID[] memory)
+        returns (string[] memory)
     {
         require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
         return _CIDsOfAttribute[attributeId];
@@ -106,7 +116,7 @@ contract HugoNFT is HugoNFTMinter {
     // todo discuss, should fail or return empty one
     // if fail add require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
     // and change 116 only to _isIdOfGeneratedNFT(tokenId))
-    function getToken(uint256 tokenId)
+    function getNFT(uint256 tokenId)
         external
         view
         returns (NFT memory)
@@ -117,10 +127,6 @@ contract HugoNFT is HugoNFTMinter {
             retNFT.seed = _standardizeSeed(retNFT.seed);
         }
         return retNFT;
-    }
-
-    function getTraitsByRarity(Rarity rarity) external view returns (Trait[] memory) {
-        return _traitsOfRarity[rarity];
     }
 
     function traitIpfsPath(uint256 attributeId, uint256 traitId)
@@ -138,11 +144,21 @@ contract HugoNFT is HugoNFTMinter {
             "HugoNFT::trait id doesn't exist for the attribute"
         );
 
-        AttributeIpfsCID[] storage aIC = _CIDsOfAttribute[attributeId];
-        if (aIC.length == 0) return "";
+        string[] memory lastCIDs = validCIDs();
+        string memory attributeCID = lastCIDs[attributeId];
+        return string(abi.encodePacked("ipfs://", attributeCID, "/", traitId.toString()));
+    }
 
-        AttributeIpfsCID storage lastCID = aIC[aIC.length - 1];
-        return lastCID.isValid ? string(abi.encodePacked("ipfs://", lastCID.cid, "/", traitId.toString())) : "";
+    function validCIDs() public view returns (string[] memory) {
+        string[] memory retCIDs = new string[](attributesAmount);
+        for (uint256 i = 0; i < attributesAmount; i++) {
+            string[] storage aCIDs = _CIDsOfAttribute[i];
+            // Length 0 is impossible, because from the deployment
+            // NFT has CIDs for its attributes
+            string storage lastCID = aCIDs[aCIDs.length - 1];
+            retCIDs[i] = lastCID;
+        }
+        return retCIDs;
     }
 
     function _baseURI() internal view override returns (string memory) {

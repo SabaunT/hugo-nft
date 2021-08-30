@@ -14,11 +14,6 @@ contract HugoNFTTypes {
         Rarity rarity;
     }
 
-    struct AttributeIpfsCID {
-        string cid;
-        bool isValid;
-    }
-
     struct Script {
         string script;
         bool isValid;
