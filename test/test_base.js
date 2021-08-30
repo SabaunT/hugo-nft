@@ -464,62 +464,86 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(totalSupply.toNumber(), 7);
             assertEqArrays([3, 4, 5, 6], nftIdsOfAccount2);
         })
+
+        it("minting with a one more attribute to test gaps in seed", async() => {
+            await nftContract.addNewAttributeWithTraits(
+                3,
+                Array(3).fill("Background trait"),
+                [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
+                exampleCID1,
+                {from: nft_admin}
+            )
+
+            await nftContract.mint(account1, [1,2,3,4,5,3,3], "test", "test", {from: minter})
+            await nftContract.mint(account1, [3,3,1,2,1,0,0], "test", "test", {from: minter})
+            // possible to have gaps
+            await nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
+            // Duplicates
+            await expectThrow(
+                nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
+            )
+            await expectThrow(
+                nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
+            )
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+
+            assert.equal(totalSupply.toNumber(), 10);
+            assertEqArrays([0,1,2,7,8,9], nftIdsOfAccount1);
+        })
     })
-    //
-    // describe("Minting exclusive tests", async() => {
-    //     it("can mint exclusive when paused", async() => {
-    //         await nftContract.addTrait(EYE_ID, 4, "New trait", rarity.LEGENDARY, {from: nft_admin});
-    //         let isPause = await nftContract.isPaused();
-    //
-    //         // invalid access
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, "some name", "some descr", exampleCID1, {from: nft_admin})
-    //         )
-    //         // invalid name length (empty string)
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, "", "some descr", exampleCID1, {from: minter})
-    //         )
-    //         // invalid descr length (empty string)
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, "some name", "", exampleCID1, {from: minter})
-    //         )
-    //         // invalid name length (too long string). Array(77).join("a") gives 76 char string
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, Array(77).join("a"), "some descr", exampleCID1, {from: minter})
-    //         )
-    //         // invalid descr length (too long string). Array(302).join("a") gives 301 char string
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, "some name", Array(302).join("a"), exampleCID1, {from: minter})
-    //         )
-    //         // minting to zero address
-    //         await expectThrow(
-    //             nftContract.mintExclusive(zeroAddress, "some name", "some descr", exampleCID1, {from: minter})
-    //         )
-    //         // invalid CID length
-    //         await expectThrow(
-    //             nftContract.mintExclusive(account1, "some name", "some descr", "some invalid CID", {from: minter})
-    //         )
-    //
-    //         // mint 3 exclusive
-    //         await nftContract.mintExclusive(account1, "some name", "some descr", exampleCID2, {from: minter})
-    //         await nftContract.mintExclusive(account2, "some name", "some descr", exampleCID2, {from: minter})
-    //         await nftContract.mintExclusive(account3, "some name", "some descr", exampleCID2, {from: minter})
-    //
-    //         let totalSupply = await nftContract.totalSupply();
-    //         let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
-    //         let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
-    //         let nftIdsOfAccount3 = await getTokenIdsOfAccount(account3);
-    //
-    //         let exclusivelyMinted = await nftContract.exclusiveNFTsAmount();
-    //
-    //         assert.ok(isPause);
-    //         assert.equal(totalSupply.toNumber(), 7);
-    //         assertEqArrays([0, 1, 2, 10000], nftIdsOfAccount1);
-    //         assertEqArrays([3, 10001], nftIdsOfAccount2);
-    //         assertEqArrays([10002], nftIdsOfAccount3);
-    //         assert.equal(exclusivelyMinted.toNumber(), 3)
-    //     })
-    // })
+
+    describe("Minting exclusive tests", async() => {
+        it("can mint exclusive", async() => {
+            // invalid access
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", "some descr", exampleCID1, {from: nft_admin})
+            )
+            // invalid name length (empty string)
+            await expectThrow(
+                nftContract.mintExclusive(account1, "", "some descr", exampleCID1, {from: minter})
+            )
+            // invalid descr length (empty string)
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", "", exampleCID1, {from: minter})
+            )
+            // invalid name length (too long string). Array(77).join("a") gives 76 char string
+            await expectThrow(
+                nftContract.mintExclusive(account1, Array(77).join("a"), "some descr", exampleCID1, {from: minter})
+            )
+            // invalid descr length (too long string). Array(302).join("a") gives 301 char string
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", Array(302).join("a"), exampleCID1, {from: minter})
+            )
+            // minting to zero address
+            await expectThrow(
+                nftContract.mintExclusive(zeroAddress, "some name", "some descr", exampleCID1, {from: minter})
+            )
+            // invalid CID length
+            await expectThrow(
+                nftContract.mintExclusive(account1, "some name", "some descr", "some invalid CID", {from: minter})
+            )
+
+            // mint 3 exclusive
+            await nftContract.mintExclusive(account1, "some name", "some descr", exampleCID2, {from: minter})
+            await nftContract.mintExclusive(account2, "some name", "some descr", exampleCID2, {from: minter})
+            await nftContract.mintExclusive(account3, "some name", "some descr", exampleCID2, {from: minter})
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            let nftIdsOfAccount2 = await getTokenIdsOfAccount(account2);
+            let nftIdsOfAccount3 = await getTokenIdsOfAccount(account3);
+
+            let exclusivelyMinted = await nftContract.exclusiveNFTsAmount();
+
+            assert.equal(totalSupply.toNumber(), 13);
+            assertEqArrays([0, 1, 2, 7, 8, 9, 10000], nftIdsOfAccount1);
+            assertEqArrays([3, 4, 5, 6, 10001], nftIdsOfAccount2);
+            assertEqArrays([10002], nftIdsOfAccount3);
+            assert.equal(exclusivelyMinted.toNumber(), 3)
+        })
+    })
     //
     // describe("Change nft name/description tests", async() => {
     //     it("changes nft name", async() => {
@@ -631,7 +655,7 @@ contract('HugoNFT', async(accounts) => {
     //         let nft2 = await nftContract.getGeneratedToken(3);
     //         assert.equal(nft1.length, nft2.length)
     //     })
-    //
+    //     // todo test NFTs exlusive have empty seed, generated ones have empty cid
     //     it("get trait CID address", async() => {
     //         // invalid attribute id
     //         await expectThrow(
