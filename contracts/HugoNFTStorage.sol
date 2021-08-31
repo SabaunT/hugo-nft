@@ -9,6 +9,8 @@ import "./HugoNFTTypes.sol";
  * 3. Script should be changed in attribute manager
  */
 contract HugoNFTStorage is HugoNFTTypes {
+    uint256 public totalSupply;
+
     // Amount of exclusive NFTs
     uint256 public exclusiveNFTsAmount;
 
@@ -34,6 +36,10 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     // Script that is used to generate NFTs from traits
     Script[] internal nftGenerationScripts;
+
+    // address => token ids of the address
+    // there is no order guaranteed
+    mapping(address => uint256[]) internal _tokenIdsOfAddress;
 
     // token id => generated hugo.
     mapping(uint256 => NFT) internal _NFTs;

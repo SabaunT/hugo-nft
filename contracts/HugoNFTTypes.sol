@@ -27,5 +27,7 @@ contract HugoNFTTypes {
         // A 0 value of token id is reserved for "no attribute" in the seed array
         uint256[] seed;
         string cid;
+        // index in _tokenIdsOfAddress[ownerOfNFT] array
+        uint256 index;
     }
 }

@@ -37,9 +37,10 @@ contract('HugoNFT', async(accounts) => {
     const account1 = accounts[0];
     const account2 = accounts[1];
     const account3 = accounts[2];
-    const nft_admin = accounts[3];
-    const minter = accounts[4];
-    const owner = accounts[5];
+    const account4 = accounts[3];
+    const nft_admin = accounts[4];
+    const minter = accounts[5];
+    const owner = accounts[6];
 
     const HEAD_ID = 0;
     const GLASSES_ID = 1;
@@ -354,7 +355,6 @@ contract('HugoNFT', async(accounts) => {
 
     describe("Minting tests", async() => {
         it("mint new generative nft", async() => {
-            // test for minting in a pause state was done previously
             // invalid access
             await expectThrow(
                 nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
@@ -598,6 +598,123 @@ contract('HugoNFT', async(accounts) => {
 
             assert.equal(nft1.description, "Some new description");
             assert.equal(nft2.description, "Some new description as well");
+        })
+    })
+
+    describe("Transfering NFTs", async() => {
+        it("should fail: sender doesn't own tokens", async() => {
+            // 0 id doesn't belong to account 3
+            await expectThrow(
+                nftContract.transferFrom(account3, account1, 0, {from: account3})
+            )
+            // such id doesn't exist
+            await expectThrow(
+                nftContract.transferFrom(account3, account1, 100, {from: account3})
+            )
+        })
+
+        it("should fail sending to zero address", async() => {
+            await expectThrow(
+                nftContract.transferFrom(account1, zeroAddress, 1, {from: account1})
+            )
+        })
+
+        it("should transfer properly when owner has only one token", async() => {
+            await nftContract.transferFrom(account3, account4, 10002, {from: account3});
+            let nftIdsOfAccount3 = await getTokenIdsOfAccount(account3);
+            let nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([], nftIdsOfAccount3);
+            assertEqArrays([10002], nftIdsOfAccount4);
+        })
+
+        it("should transfer properly when having multiple tokens", async() => {
+            // sending the first one
+            await nftContract.transferFrom(account1, account4, 0, {from: account1});
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            let nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 7, 8, 9], nftIdsOfAccount1);
+            assertEqArrays([10002, 0], nftIdsOfAccount4);
+
+            // checking indxes
+            let nft10000 = await nftContract.getNFT(10000);
+            assert.equal(nft10000.index, 0);
+
+            // sending the one in the middle
+            await nftContract.transferFrom(account1, account4, 7, {from: account1});
+            nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 9, 8], nftIdsOfAccount1);
+            assertEqArrays([10002, 0, 7], nftIdsOfAccount4);
+
+            // checking indxes
+            let nft9 = await nftContract.getNFT(9);
+            assert.equal(nft9.index, 3);
+
+            // sending the last one
+            await nftContract.transferFrom(account1, account4, 8, {from: account1});
+            nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 9], nftIdsOfAccount1);
+            assertEqArrays([10002, 0, 7, 8], nftIdsOfAccount4);
+
+            // no index changes
+            nft10000 = await nftContract.getNFT(10000);
+            assert.equal(nft10000.index, 0);
+            nft9 = await nftContract.getNFT(9);
+            assert.equal(nft9.index, 3);
+        })
+
+        it("transferred nfts should have right indexes", async() => {
+            let balanceOfAccount4 = await nftContract.balanceOf(account4);
+            let nft10002 = await nftContract.getNFT(10002);
+            let nft0 = await nftContract.getNFT(0);
+            let nft7 = await nftContract.getNFT(7);
+            let nft8 = await nftContract.getNFT(8);
+
+            assert.equal(balanceOfAccount4.toNumber(), 4);
+            assert.equal(nft10002.index, 0)
+            assert.equal(nft0.index, 1)
+            assert.equal(nft7.index, 2)
+            assert.equal(nft8.index, 3)
+        })
+
+        it("should properly transfer NFTs back", async() => {
+            await nftContract.transferFrom(account4, account1, 0, {from: account4});
+            let nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            let nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 9, 0], nftIdsOfAccount1);
+            assertEqArrays([10002, 8, 7], nftIdsOfAccount4);
+
+            await nftContract.transferFrom(account4, account3, 10002, {from: account4});
+            let nftIdsOfAccount3 = await getTokenIdsOfAccount(account3);
+            nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+            assertEqArrays([10002], nftIdsOfAccount3);
+            assertEqArrays([7, 8], nftIdsOfAccount4);
+
+            await nftContract.transferFrom(account4, account1, 8, {from: account4});
+            nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 9, 0, 8], nftIdsOfAccount1);
+            assertEqArrays([7], nftIdsOfAccount4);
+
+            await nftContract.transferFrom(account4, account1, 7, {from: account4});
+            nftIdsOfAccount1 = await getTokenIdsOfAccount(account1);
+            nftIdsOfAccount4 = await getTokenIdsOfAccount(account4);
+
+            assertEqArrays([10000, 1, 2, 9, 0, 8, 7], nftIdsOfAccount1);
+            assertEqArrays([], nftIdsOfAccount4);
+
+            let balanceOfAcc1 = await nftContract.balanceOf(account1);
+            let balanceOfAcc4 = await nftContract.balanceOf(account4);
+
+            assert.equal(balanceOfAcc1.toNumber(), 7);
+            assert.equal(balanceOfAcc4.toNumber(), 0);
         })
     })
 

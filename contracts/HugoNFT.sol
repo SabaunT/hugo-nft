@@ -1,26 +1,25 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./HugoNFTMinter.sol";
 
 /** TODO
-2. Getting NFTs of a user. 2.1) Mapping (address=>ids[]) <- Remember to change it when transfers happen
-2.2) Function that accepts a bunch if seeds and returns NFTs (can be used to get NFTs of the user)
 3. error model
 4. questions:
 - script update -> yes, when attribute added
 - events needed - да и подробнее, чтобы можно было восстановить стейт
-5. какие трэйты имеют такой rarity для данного атрибута
 */
 
 // This contract mainly stores view functions
 contract HugoNFT is HugoNFTMinter {
     using Strings for uint256;
 
-    // @notice Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
+    // @notice todo discuss Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
     constructor(
         string memory baseTokenURI,
         uint256 initialAmountOfAttributes,
@@ -31,6 +30,7 @@ contract HugoNFT is HugoNFTMinter {
         Rarity[][] memory raritiesForEachAttribute,
         string[] memory CIDsForEachAttribute
     )
+        ERC721("HugoNFT", "HUGO")
     {
         require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
         require(initialAmountOfAttributes > 0, "HugoNFT::initial attributes amount is 0");
@@ -65,6 +65,10 @@ contract HugoNFT is HugoNFTMinter {
         }
     }
 
+    function generatedNFTsAmount() external view returns (uint256) {
+        return _getGeneratedHugoAmount();
+    }
+
     function getCIDsOfAttribute(uint256 attributeId)
         external
         view
@@ -83,26 +87,30 @@ contract HugoNFT is HugoNFTMinter {
         return _traitsOfAttribute[attributeId];
     }
 
-    /**
-     * @dev Gets tokens owned by the `account`.
-     *
-     * *Warning*. Never call on-chain. Call only using web3 "call" method!
-     */
+    // todo discuss - need to truncate
+    // todo test
+    function getTraitsWithRarityByAttribute(uint256 attributeId, Rarity rarity)
+        external
+        view
+        returns (Trait[] memory)
+    {
+        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        Trait[] storage tOA = _traitsOfAttribute[attributeId];
+        Trait[] memory tmp = new Trait[](tOA.length);
+        for (uint256 i = 0; i < tOA.length; i++) {
+            if (tOA[i].rarity == rarity) {
+                tmp[i] = tOA[i];
+            }
+        }
+        return tmp;
+    }
+
     function tokenIdsOfOwner(address account)
         external
         view
-        returns (uint256[] memory ownerTokens)
+        returns (uint256[] memory)
     {
-        uint256 tokenAmount = balanceOf(account);
-        if (tokenAmount == 0) {
-            return new uint256[](0);
-        } else {
-            uint256[] memory output = new uint256[](tokenAmount);
-            for (uint256 index = 0; index < tokenAmount; index++) {
-                output[index] = tokenOfOwnerByIndex(account, index);
-            }
-            return output;
-        }
+        return _tokenIdsOfAddress[account];
     }
 
     function isUsedSeed(uint256[] calldata seed) external view returns (bool) {
@@ -110,11 +118,20 @@ contract HugoNFT is HugoNFTMinter {
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
+    // todo test
+    function getNFTs(uint256[] calldata tokenIds) external view returns (NFT[] memory) {
+        NFT[] memory ret = new NFT[](tokenIds.length);
+        for (uint256 i = 0; i < tokenIds.length; i++) {
+            ret[i] = getNFT(i);
+        }
+        return ret;
+    }
+
     // todo discuss, should fail or return empty one
     // if fail add require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
     // and change 116 only to _isIdOfGeneratedNFT(tokenId))
     function getNFT(uint256 tokenId)
-        external
+        public
         view
         returns (NFT memory)
     {
@@ -126,7 +143,7 @@ contract HugoNFT is HugoNFTMinter {
                 retNFT.seed = _standardizeSeed(retNFT.seed);
             }
         } else {
-            retNFT = NFT(0, "", "", new uint256[](0), "");
+            retNFT = NFT(0, "", "", new uint256[](0), "", 0);
         }
         return retNFT;
     }

@@ -1,15 +1,14 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-import "./HugoNFTMetadataManager.sol";
-import "./ERC721EnumarableAbstract.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstract {
+import "./HugoNFTMetadataManager.sol";
+
+abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
     event Mint(address indexed to, uint256 indexed tokenId, string name);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
-
-    constructor() ERC721("HUGO", "HUGO") {}
 
     function mint(
         address to,
@@ -40,7 +39,13 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         uint256 newTokenId = _getNewIdForGeneratedHugo();
         super._safeMint(to, newTokenId);
 
-        _NFTs[newTokenId] = NFT(newTokenId, name, description, seed, "");
+        totalSupply += 1;
+
+        uint256[] storage tIdsOfA = _tokenIdsOfAddress[to];
+        uint256 idInArrayOfIds = tIdsOfA.length;
+
+        tIdsOfA.push(newTokenId);
+        _NFTs[newTokenId] = NFT(newTokenId, name, description, seed, "", idInArrayOfIds);
         _isUsedSeed[seedHash] = true;
 
         emit Mint(to, newTokenId, name);
@@ -70,9 +75,15 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
 
         uint256 newTokenId = _getNewIdForExclusiveHugo();
         super._safeMint(to, newTokenId);
+
+        totalSupply += 1;
         exclusiveNFTsAmount += 1;
 
-        _NFTs[newTokenId] = NFT(newTokenId, name, description, new uint256[](0), cid);
+        uint256[] storage tIdsOfA = _tokenIdsOfAddress[to];
+        uint256 idInArrayOfIds = tIdsOfA.length;
+
+        tIdsOfA.push(newTokenId);
+        _NFTs[newTokenId] = NFT(newTokenId, name, description, new uint256[](0), cid, idInArrayOfIds);
 
         emit Mint(to, newTokenId, name);
     }
@@ -109,10 +120,44 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     function supportsInterface(bytes4 interfaceId)
         public
         view
-        override(ERC721EnumerableAbstract, AccessControl)
+        override(ERC721, AccessControl)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
+    }
+
+    // todo do thorough tests
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256 tokenId
+    ) internal virtual override {
+        // Does nothing as ERC721._beforeTokenTransfer has no logic
+        super._beforeTokenTransfer(from, to, tokenId);
+
+        // transferFrom was called
+        if (from != address(0)) {
+            uint256[] storage tokenIdsFrom = _tokenIdsOfAddress[from];
+            uint256[] storage tokenIdsTo = _tokenIdsOfAddress[to];
+            NFT storage transferringNFT = _NFTs[tokenId];
+
+            uint256 lastIndexInIdsFrom = tokenIdsFrom.length - 1;
+            uint256 transferringTokenIndex = transferringNFT.index;
+
+            if (transferringTokenIndex != lastIndexInIdsFrom) {
+                uint256 lastIdFrom = tokenIdsFrom[lastIndexInIdsFrom];
+                NFT storage lastNFTFrom = _NFTs[lastIdFrom];
+
+                tokenIdsFrom[transferringTokenIndex] = lastNFTFrom.tokenId;
+                lastNFTFrom.index = transferringTokenIndex;
+            }
+
+            uint256 transferringTokenNewIndex = tokenIdsTo.length;
+            tokenIdsTo.push(tokenId);
+            transferringNFT.index = transferringTokenNewIndex;
+
+            tokenIdsFrom.pop();
+        }
     }
 
     // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
@@ -151,6 +196,10 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
         return nft.tokenId == tokenId;
     }
 
+    function _getGeneratedHugoAmount() internal view returns (uint256) {
+        return totalSupply - exclusiveNFTsAmount;
+    }
+
     // Seed length isn't checked, because was done previously in {HugoNFT-_isValidSeed}
     function _areValidTraitIds(uint256[] calldata seed) private view returns (bool) {
         for (uint256 i = 0; i < seed.length; i++ ) {
@@ -180,10 +229,6 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721EnumerableAbstr
     // in the {HugoNFT-mint}.
     function _getNewIdForGeneratedHugo() private view returns (uint256) {
         return _getGeneratedHugoAmount();
-    }
-
-    function _getGeneratedHugoAmount() private view returns (uint256) {
-        return totalSupply() - exclusiveNFTsAmount;
     }
 
     // Ids are from 10'000 and etc.
