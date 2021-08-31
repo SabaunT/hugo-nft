@@ -126,7 +126,6 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         return super.supportsInterface(interfaceId);
     }
 
-    // todo do thorough tests
     function _beforeTokenTransfer(
         address from,
         address to,

@@ -13,6 +13,7 @@ import "./HugoNFTMinter.sol";
 4. questions:
 - script update -> yes, when attribute added
 - events needed - да и подробнее, чтобы можно было восстановить стейт
+5. audit (+refactor) and test refactor
 */
 
 // This contract mainly stores view functions
@@ -87,22 +88,36 @@ contract HugoNFT is HugoNFTMinter {
         return _traitsOfAttribute[attributeId];
     }
 
-    // todo discuss - need to truncate
-    // todo test
     function getTraitsWithRarityByAttribute(uint256 attributeId, Rarity rarity)
         external
         view
         returns (Trait[] memory)
     {
         require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+
         Trait[] storage tOA = _traitsOfAttribute[attributeId];
+
+        uint256 foundTraitsWithRequestedRarity = 0;
+        // Needs to compute position of the needed trait in tmp array,
+        // so the first found trait will be placed at the 0 index, not at the current i.
+        uint256 misses = 0;
         Trait[] memory tmp = new Trait[](tOA.length);
         for (uint256 i = 0; i < tOA.length; i++) {
             if (tOA[i].rarity == rarity) {
-                tmp[i] = tOA[i];
+                tmp[i - misses] = tOA[i];
+                foundTraitsWithRequestedRarity += 1;
+            } else {
+                misses += 1;
             }
         }
-        return tmp;
+
+        // Filling all found traits in array with the proper length
+        // The same as getting rif of empty Trait structs on the right
+        Trait[] memory ret = new Trait[](foundTraitsWithRequestedRarity);
+        for (uint256 i = 0; i < foundTraitsWithRequestedRarity; i++) {
+            ret[i] = tmp[i];
+        }
+        return ret;
     }
 
     function tokenIdsOfOwner(address account)
@@ -118,24 +133,20 @@ contract HugoNFT is HugoNFTMinter {
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
-    // todo test
     function getNFTs(uint256[] calldata tokenIds) external view returns (NFT[] memory) {
         NFT[] memory ret = new NFT[](tokenIds.length);
         for (uint256 i = 0; i < tokenIds.length; i++) {
-            ret[i] = getNFT(i);
+            uint256 tokenId = tokenIds[i];
+            ret[i] = getNFT(tokenId);
         }
         return ret;
     }
 
-    // todo discuss, should fail or return empty one
-    // if fail add require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
-    // and change 116 only to _isIdOfGeneratedNFT(tokenId))
     function getNFT(uint256 tokenId)
         public
         view
         returns (NFT memory)
     {
-        // default NFT
         NFT memory retNFT;
         if (_tokenExists(tokenId)) {
             retNFT = _NFTs[tokenId];
@@ -143,6 +154,7 @@ contract HugoNFT is HugoNFTMinter {
                 retNFT.seed = _standardizeSeed(retNFT.seed);
             }
         } else {
+            // default NFT
             retNFT = NFT(0, "", "", new uint256[](0), "", 0);
         }
         return retNFT;

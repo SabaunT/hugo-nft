@@ -48,6 +48,7 @@ contract('HugoNFT', async(accounts) => {
     const SHIRT_ID = 3;
     const SCARF_ID = 4;
     const EYE_ID = 5;
+    const BACKGROUND_ID = 6;
 
     const rarity = {
         COMMON: 0,
@@ -266,7 +267,7 @@ contract('HugoNFT', async(accounts) => {
                 HEAD_ID,
                 3,
                 Array(3).fill("Head trait"),
-                Array(3).fill(rarity.UNCOMMON),
+                Array(3).fill(rarity.COMMON),
                 exampleCID1,
                 {from: nft_admin}
             )
@@ -274,7 +275,7 @@ contract('HugoNFT', async(accounts) => {
                 GLASSES_ID,
                 3,
                 Array(3).fill("Glasses trait"),
-                Array(3).fill(rarity.UNCOMMON),
+                Array(3).fill(rarity.COMMON),
                 exampleCID1,
                 {from: nft_admin}
             )
@@ -282,7 +283,7 @@ contract('HugoNFT', async(accounts) => {
                 BODY_ID,
                 3,
                 Array(3).fill("Body trait"),
-                Array(3).fill(rarity.UNCOMMON),
+                Array(3).fill(rarity.COMMON),
                 exampleCID1,
                 {from: nft_admin}
             )
@@ -290,7 +291,7 @@ contract('HugoNFT', async(accounts) => {
                 SHIRT_ID,
                 3,
                 Array(3).fill("Shirt trait"),
-                Array(3).fill(rarity.UNCOMMON),
+                Array(3).fill(rarity.COMMON),
                 exampleCID1,
                 {from: nft_admin}
             )
@@ -298,7 +299,7 @@ contract('HugoNFT', async(accounts) => {
                 SCARF_ID,
                 3,
                 Array(3).fill("Scarf trait"),
-                Array(3).fill(rarity.UNCOMMON),
+                Array(3).fill(rarity.COMMON),
                 exampleCID1,
                 {from: nft_admin}
             )
@@ -310,11 +311,11 @@ contract('HugoNFT', async(accounts) => {
             let traitsOfAttribute4 = await nftContract.getTraitsOfAttribute(SCARF_ID);
 
             let equalLength =
-                !!traitsOfAttribute0.length &&
-                !!traitsOfAttribute1.length &&
-                !!traitsOfAttribute2.length &&
-                !!traitsOfAttribute3.length &&
-                !!traitsOfAttribute4.length;
+                traitsOfAttribute0.length == traitsOfAttribute1.length &&
+                traitsOfAttribute1.length == traitsOfAttribute2.length &&
+                traitsOfAttribute2.length == traitsOfAttribute3.length &&
+                traitsOfAttribute3.length == traitsOfAttribute4.length
+            ;
 
             assert.ok(equalLength);
         })
@@ -337,10 +338,10 @@ contract('HugoNFT', async(accounts) => {
                 nftContract.addTrait(HEAD_ID, 7, "Classical Hat", rarity.UNCOMMON, exampleCID2, {from: account1})
             )
 
-            await nftContract.addTrait(HEAD_ID, 7, "Classical Hat", rarity.UNCOMMON, exampleCID2, {from: nft_admin});
-            await nftContract.addTrait(GLASSES_ID, 7,  "RayBan", rarity.COMMON, exampleCID2, {from: nft_admin});
-            await nftContract.addTrait(BODY_ID, 7, "Muscular", rarity.UNCOMMON, exampleCID2, {from: nft_admin});
-            await nftContract.addTrait(SHIRT_ID, 7, "Tuxedo", rarity.UNCOMMON, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(HEAD_ID, 7, "Classical Hat", rarity.LEGENDARY, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(GLASSES_ID, 7,  "RayBan", rarity.LEGENDARY, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(BODY_ID, 7, "Muscular", rarity.RARE, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(SHIRT_ID, 7, "Tuxedo", rarity.RARE, exampleCID2, {from: nft_admin});
             await nftContract.addTrait(SCARF_ID, 7, "Gryffindor", rarity.RARE, exampleCID2, {from: nft_admin});
 
             let traitsOfAttribute0 = await nftContract.getTraitsOfAttribute(HEAD_ID);
@@ -354,7 +355,7 @@ contract('HugoNFT', async(accounts) => {
     })
 
     describe("Minting tests", async() => {
-        it("mint new generative nft", async() => {
+        it("should mint new generative nft", async() => {
             // invalid access
             await expectThrow(
                 nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
@@ -480,7 +481,7 @@ contract('HugoNFT', async(accounts) => {
             await nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
             // Duplicates
             await expectThrow(
-                nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
+                nftContract.mint(account1, [3,3,1,2,1,0,0], "test", "test", {from: minter})
             )
             await expectThrow(
                 nftContract.mint(account1, [3,3,1,2,1,0,2], "test", "test", {from: minter})
@@ -493,7 +494,7 @@ contract('HugoNFT', async(accounts) => {
             assertEqArrays([0,1,2,7,8,9], nftIdsOfAccount1);
         })
 
-        it("can mint exclusive", async() => {
+        it("should mint exclusive", async() => {
             // invalid access
             await expectThrow(
                 nftContract.mintExclusive(account1, "some name", "some descr", exampleCID1, {from: nft_admin})
@@ -718,76 +719,222 @@ contract('HugoNFT', async(accounts) => {
         })
     })
 
-    // // todo test throws
-    // describe("Info fns tests", async() => {
-    //     it("getting CIDs for an attribute", async() => {
-    //         // invalid attribute id
-    //         await expectThrow(
-    //             nftContract.getCIDsOfAttribute(6)
-    //         )
-    //         // When trait for EYE attribute was added, we didn't update the CID
-    //         let CIDsOfEye = await nftContract.getCIDsOfAttribute(5);
-    //         let lastEyeCID = CIDsOfEye[CIDsOfEye.length - 1];
-    //         let CIDsOfScarf = await nftContract.getCIDsOfAttribute(4);
-    //         let lastScarfCID = CIDsOfScarf[CIDsOfScarf.length - 1];
-    //
-    //         assert.ok(!lastEyeCID.isValid);
-    //         assert.ok(lastScarfCID.isValid);
-    //     })
-    //
-    //     it("getting traits of an attribute", async() => {
-    //         // invalid attribute id
-    //         await expectThrow(
-    //             nftContract.getTraitsOfAttribute(6)
-    //         )
-    //         let traitsOfEye = await nftContract.getTraitsOfAttribute(5);
-    //         assert.equal(traitsOfEye.length, 4);
-    //     })
-    //
-    //     it("checking seed is used", async() => {
-    //         // Read fn docs to understand why it returns an error with such seeds
-    //         await expectThrow(
-    //             nftContract.isUsedSeed([1, 1, 1, 1, 1])
-    //         )
-    //         await expectThrow(
-    //             nftContract.isUsedSeed([1, 1, 1, 1, 1, 5])
-    //         )
-    //         await expectThrow(
-    //             nftContract.isUsedSeed([1, 1, 1, 1, 1, 0])
-    //         )
-    //         let isUsed1 = await nftContract.isUsedSeed([3, 1, 2, 1, 1,  4])
-    //         let isUsed2 = await nftContract.isUsedSeed([1, 2, 3, 4, 5, 3])
-    //
-    //         // not used
-    //         assert.ok(!isUsed1)
-    //         // used
-    //         assert.ok(isUsed2)
-    //     })
-    //
-    //     it("generated token seeds minted with different amount of attributes have same sizes", async() => {
-    //         let nft1 = await nftContract.getGeneratedToken(1);
-    //         // was minted after attribute was added
-    //         let nft2 = await nftContract.getGeneratedToken(3);
-    //         assert.equal(nft1.length, nft2.length)
-    //     })
-    //     // todo test NFTs exlusive have empty seed, generated ones have empty cid
-    //     it("get trait CID address", async() => {
-    //         // invalid attribute id
-    //         await expectThrow(
-    //             nftContract.traitIpfsPath(6, 3)
-    //         )
-    //         // invalid trait id
-    //         await expectThrow(
-    //             nftContract.traitIpfsPath(HEAD_ID, 0)
-    //         )
-    //         await expectThrow(
-    //             nftContract.traitIpfsPath(EYE_ID, 5)
-    //         )
-    //         let trait1Address = await nftContract.traitIpfsPath(HEAD_ID, 3);
-    //         assert.equal("ipfs://".concat(exampleCID1, "/", "3"), trait1Address);
-    //         // When trait for EYE attribute was added, we didn't update the CID
-    //         let trait2Address = await nftContract.traitIpfsPath(EYE_ID, 1);
-    //         assert.equal(trait2Address, "");
-    //     })
-    // })
+    describe("Info fns tests", async() => {
+        it("should correctly view generated and exlusive nfts amount", async() => {
+            let generated = await nftContract.generatedNFTsAmount();
+            let exclusive = await nftContract.exclusiveNFTsAmount();
+            let totalSupply = await nftContract.totalSupply();
+
+            assert.equal(generated.toNumber(), 10)
+            assert.equal(exclusive.toNumber(), 3)
+            assert.equal(totalSupply.toNumber(), 13)
+        })
+
+        it("should correctly view CIDs for an attribute", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.getCIDsOfAttribute(8)
+            )
+            // When trait for EYE attribute was added, we didn't update the CID
+            let CIDsOfEye = await nftContract.getCIDsOfAttribute(EYE_ID);
+            let lastEyeCID = CIDsOfEye[CIDsOfEye.length - 1];
+            let CIDsOfScarf = await nftContract.getCIDsOfAttribute(SCARF_ID);
+            let lastScarfCID = CIDsOfScarf[CIDsOfScarf.length - 1];
+
+            assert.equal(lastEyeCID, exampleCID2);
+            assert.equal(lastScarfCID, exampleCID2);
+        })
+
+        it("should correctly view traits of an attribute", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.getTraitsOfAttribute(8)
+            )
+            let traitsOfEye = await nftContract.getTraitsOfAttribute(EYE_ID);
+            assert.equal(traitsOfEye.length, 3);
+            let traitsOfBackGround = await nftContract.getTraitsOfAttribute(BACKGROUND_ID);
+            assert.equal(traitsOfBackGround.length, 3);
+        })
+
+        it("should correctly take traits of attribute with exact rarity", async() => {
+            let uncommonHEAD = await nftContract.getTraitsWithRarityByAttribute(HEAD_ID, rarity.UNCOMMON)
+            let lastTrait = uncommonHEAD[uncommonHEAD.length - 1];
+            assert.equal(uncommonHEAD.length, 3);
+            assert.equal(lastTrait.traitId, 3);
+
+            let commonHEAD = await nftContract.getTraitsWithRarityByAttribute(HEAD_ID, rarity.COMMON)
+            lastTrait = commonHEAD[commonHEAD.length - 1];
+            assert.equal(commonHEAD.length, 3);
+            assert.equal(lastTrait.traitId, 6);
+
+            let legendaryGLASSES = await nftContract.getTraitsWithRarityByAttribute(GLASSES_ID, rarity.LEGENDARY)
+            lastTrait = legendaryGLASSES[legendaryGLASSES.length - 1];
+            assert.equal(legendaryGLASSES.length, 1);
+            assert.equal(lastTrait.traitId, 7);
+
+            let rareSHIRT = await nftContract.getTraitsWithRarityByAttribute(SHIRT_ID, rarity.RARE);
+            lastTrait = rareSHIRT[rareSHIRT.length - 1];
+            assert.equal(rareSHIRT.length, 1);
+            assert.equal(lastTrait.traitId, 7);
+
+            let uncommonEYE = await nftContract.getTraitsWithRarityByAttribute(EYE_ID, rarity.UNCOMMON);
+            lastTrait = uncommonEYE[uncommonEYE.length - 1];
+            assert.equal(uncommonEYE.length, 1);
+            assert.equal(lastTrait.traitId, 2);
+
+            let rareBACKGROUND = await nftContract.getTraitsWithRarityByAttribute(BACKGROUND_ID, rarity.RARE);
+            lastTrait = rareBACKGROUND[rareBACKGROUND.length - 1];
+            assert.equal(rareBACKGROUND.length, 1);
+            assert.equal(lastTrait.traitId, 3);
+
+            let commonBACKGROUND = await nftContract.getTraitsWithRarityByAttribute(BACKGROUND_ID, rarity.COMMON);
+            lastTrait = commonBACKGROUND[commonBACKGROUND.length - 1];
+            assert.equal(commonBACKGROUND.length, 1);
+            assert.equal(lastTrait.traitId, 1);
+        })
+
+        it("should correctly take traits of attribute with exact rarity (adding some traits)", async() => {
+            await nftContract.addTraits(
+                HEAD_ID,
+                3,
+                Array(3).fill("head rare traits"),
+                Array(3).fill(rarity.RARE),
+                exampleCID1,
+                {from: nft_admin}
+            )
+
+            let rareHEAD = await nftContract.getTraitsWithRarityByAttribute(HEAD_ID, rarity.RARE)
+            let lastTrait = rareHEAD[rareHEAD.length - 1];
+            assert.equal(rareHEAD.length, 3);
+            assert.equal(lastTrait.traitId, 10);
+
+            await nftContract.addTraits(
+                EYE_ID,
+                2,
+                Array(2).fill("eye common traits"),
+                Array(2).fill(rarity.COMMON),
+                exampleCID2,
+                {from: nft_admin}
+            )
+
+            let commonEYE = await nftContract.getTraitsWithRarityByAttribute(EYE_ID, rarity.COMMON)
+            lastTrait = commonEYE[commonEYE.length - 1];
+            assert.equal(commonEYE.length, 3);
+            assert.equal(lastTrait.traitId, 5);
+
+            await nftContract.addTrait(EYE_ID, 6, "eye uncommon traits", rarity.UNCOMMON, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(EYE_ID, 7, "eye rare traits", rarity.RARE, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(EYE_ID, 8, "eye uncommon traits", rarity.UNCOMMON, exampleCID2, {from: nft_admin});
+            await nftContract.addTrait(EYE_ID, 9, "eye rare traits", rarity.RARE, exampleCID2, {from: nft_admin});
+
+            let uncommonEYE = await nftContract.getTraitsWithRarityByAttribute(EYE_ID, rarity.UNCOMMON)
+            lastTrait = uncommonEYE[uncommonEYE.length - 1];
+            let firstTrait = uncommonEYE[0];
+            assert.equal(uncommonEYE.length, 3);
+            assert.equal(firstTrait.traitId, 2);
+            assert.equal(lastTrait.traitId, 8);
+
+            let rareEYE = await nftContract.getTraitsWithRarityByAttribute(EYE_ID, rarity.RARE)
+            lastTrait = rareEYE[rareEYE.length - 1];
+            firstTrait = rareEYE[0];
+            assert.equal(rareEYE.length, 3);
+            assert.equal(firstTrait.traitId, 3);
+            assert.equal(lastTrait.traitId, 9);
+        })
+
+        it("should properly check whether seed was used", async() => {
+            // invalid seed length: too short
+            await expectThrow(
+                nftContract.isUsedSeed([1,1,1,1])
+            )
+            // invalid seed length: too long
+            await expectThrow(
+                nftContract.isUsedSeed([1,1,1,1,1,1,1,1])
+            )
+            // invalid trait ids: EYE attribute has only 9 traits
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 1, 10])
+            )
+            // invalid trait ids: core attributes can't be zero
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 0, 3])
+            )
+            // invalid trait ids: SCARF attribute has only 7 traits
+            await expectThrow(
+                nftContract.isUsedSeed([1, 1, 1, 1, 8, 3])
+            )
+
+            let isUsed1 = await nftContract.isUsedSeed([1, 1, 1, 1, 1, 0])
+            let isUsed2 = await nftContract.isUsedSeed([1, 1, 1, 1, 1, 0, 0])
+            let isUsed3 = await nftContract.isUsedSeed([3, 1, 2, 1, 1, 4])
+            let isUsed4 = await nftContract.isUsedSeed([1, 2, 3, 4, 5, 3])
+            let isUsed5 = await nftContract.isUsedSeed([1, 2, 3, 4, 5, 3, 0])
+            let isUsed6 = await nftContract.isUsedSeed([1, 2, 3, 4, 5, 0, 3])
+            let isUsed7 = await nftContract.isUsedSeed([1, 2, 5, 7, 7])
+            let isUsed8 = await nftContract.isUsedSeed([1, 2, 5, 7, 7, 0])
+
+            // used
+            assert.ok(isUsed1)
+            // used
+            assert.ok(isUsed2)
+            // not used
+            assert.ok(!isUsed3)
+            // used
+            assert.ok(isUsed4)
+            // used
+            assert.ok(isUsed5)
+            // not used
+            assert.ok(!isUsed6)
+            // not used
+            assert.ok(!isUsed7)
+            // not used
+            assert.ok(!isUsed8)
+        })
+
+        it("should properly return nfts array", async() => {
+            let nfts1 = await nftContract.getNFTs([0, 1, 2, 10, 11, 12, 231, 1212]);
+            nfts1.slice(3).every(nft => assert.equal(nft.name, ""));
+            // Generated ones have 0 length cid
+            nfts1.slice(0, 3).every(nft => {
+                assert.equal(nft.seed.length, 7)
+                assert.equal(nft.cid.length, 0)
+            })
+
+            let nfts2 = await nftContract.getNFTs([10000, 10001, 10002, 10003, 10004]);
+            nfts2.slice(3).every(nft => assert.equal(nft.name, ""));
+            // Exclusive ones have 0 length seed
+            nfts2.slice(0, 3).every(nft => {
+                assert.equal(nft.seed.length, 0)
+                assert.equal(nft.cid.length, 46)
+            })
+        })
+
+        it("nfts should have equal lengths regardless of attributes amount during their mint", async() => {
+            let nft1 = await nftContract.getNFT(1);
+            let nft5 = await nftContract.getNFT(5);
+            let nft9 = await nftContract.getNFT(9);
+
+            assert.equal(nft1.seed.length, 7);
+            assert.ok(nft1.seed.length == nft5.seed.length && nft5.seed.length == nft9.seed.length)
+        })
+
+        it("get trait CID address", async() => {
+            // invalid attribute id
+            await expectThrow(
+                nftContract.traitIpfsPath(7, 3)
+            )
+            // invalid trait id: 0 id is reserved
+            await expectThrow(
+                nftContract.traitIpfsPath(HEAD_ID, 0)
+            )
+            // invalid trait id: non existent
+            await expectThrow(
+                nftContract.traitIpfsPath(BACKGROUND_ID, 4)
+            )
+            let trait1Address = await nftContract.traitIpfsPath(HEAD_ID, 3);
+            assert.equal("ipfs://".concat(exampleCID1, "/", "3"), trait1Address);
+            let trait2Address = await nftContract.traitIpfsPath(EYE_ID, 1);
+            assert.equal("ipfs://".concat(exampleCID2, "/", "1"), trait2Address);
+        })
+    })
 })
