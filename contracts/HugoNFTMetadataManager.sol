@@ -7,11 +7,12 @@ import "./HugoNFTStorage.sol";
 
 // Management for attributes, traits and hashes - all are named as meta-data.
 contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
-    event AddNewAttribute(uint256 indexed newAttributeId);
-    event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name);
+    event AddNewAttribute(uint256 indexed newAttributeId, string attributeName, string newScript);
+    event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name, Rarity rarity);
     event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
 
     function addNewAttributeWithTraits(
+        string calldata attributeName,
         uint256 amountOfTraits,
         string[] calldata names,
         Rarity[] calldata rarities,
@@ -24,11 +25,11 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         uint256 newAttributeId = currentAttributesAmount;
         currentAttributesAmount += 1;
 
+        _attributes[newAttributeId] = Attribute(newAttributeId, attributeName);
         addTraits(newAttributeId, amountOfTraits, names, rarities, cid);
-
         nftGenerationScripts.push(newGenerationScript);
 
-        emit AddNewAttribute(newAttributeId);
+        emit AddNewAttribute(newAttributeId, attributeName, newGenerationScript);
     }
 
     // If for some attribute it wasn't intended to update the hash, then
@@ -126,6 +127,6 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         Trait memory newTrait = Trait(attributeId, traitId, name, rarity);
         tA.push(newTrait);
 
-        emit AddNewTrait(attributeId, traitId, name);
+        emit AddNewTrait(attributeId, traitId, name, rarity);
     }
 }

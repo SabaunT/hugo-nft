@@ -9,17 +9,15 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-1. questions:
-- script update -> yes, when attribute added
-- events needed - да и подробнее, чтобы можно было восстановить стейт
-2. audit (+refactor) and test refactor
+1. audit (+refactor) and test refactor (discussions)
 */
 
 // This contract mainly stores view functions
 contract HugoNFT is HugoNFTMinter {
     using Strings for uint256;
 
-    // @notice todo discuss Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
+    // todo discuss Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
+    // todo discuss emitting events in constructor
     constructor(
         string memory baseTokenURI,
         uint256 initialAmountOfAttributes,
@@ -28,7 +26,8 @@ contract HugoNFT is HugoNFTMinter {
         uint256[] memory traitAmountForEachAttribute,
         string[][] memory traitNamesForEachAttribute,
         Rarity[][] memory raritiesForEachAttribute,
-        string[] memory CIDsForEachAttribute
+        string[] memory CIDsForEachAttribute,
+        string[] memory attributesNames
     )
         ERC721("HugoNFT", "HUGO")
     {
@@ -39,7 +38,8 @@ contract HugoNFT is HugoNFTMinter {
             (initialAmountOfAttributes == traitAmountForEachAttribute.length) &&
             (initialAmountOfAttributes == traitNamesForEachAttribute.length) &&
             (initialAmountOfAttributes == raritiesForEachAttribute.length) &&
-            (initialAmountOfAttributes == CIDsForEachAttribute.length),
+            (initialAmountOfAttributes == CIDsForEachAttribute.length) &&
+            (initialAmountOfAttributes == attributesNames.length),
             "HugoNFT::disproportion in provided attributes and traits data"
         );
 
@@ -50,6 +50,14 @@ contract HugoNFT is HugoNFTMinter {
         minAttributesAmount = initialAmountOfAttributes;
         currentAttributesAmount = initialAmountOfAttributes;
         nftGenerationScripts.push(script);
+
+        for (uint256 i = 0; i < attributesNames.length; i++) {
+            require(
+                bytes(attributesNames[i]).length > 0,
+                "HugoNFT::empty attribute name"
+            );
+            _attributes[i] = Attribute(i, attributesNames[i]);
+        }
 
         // Very important to set them in constructor,
         // because otherwise contract should be paused until all
@@ -63,6 +71,15 @@ contract HugoNFT is HugoNFTMinter {
                 CIDsForEachAttribute[i]
             );
         }
+    }
+
+    function getAttributeData(uint256 attributeId)
+        external
+        view
+        returns (Attribute memory)
+    {
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
+        return _attributes[attributeId];
     }
 
     function getGenerationScriptForAttributesNum(uint256 attributesNum)

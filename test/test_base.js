@@ -50,6 +50,8 @@ contract('HugoNFT', async(accounts) => {
     const EYE_ID = 5;
     const BACKGROUND_ID = 6;
 
+    const CORE_ATTRIBUTES = ["head", "glasses", "body", "shirt", "scarf"];
+
     const rarity = {
         COMMON: 0,
         UNCOMMON: 1,
@@ -82,6 +84,7 @@ contract('HugoNFT', async(accounts) => {
                 Array(versionOneAttributesAmount).fill(Array(4).fill("aaaa")),
                 Array(versionOneAttributesAmount).fill(Array(4).fill(rarity.UNCOMMON)),
                 Array(versionOneAttributesAmount).fill(exampleCID1),
+                CORE_ATTRIBUTES,
                 {from: owner})
         )
         // zero attributes amount
@@ -94,6 +97,7 @@ contract('HugoNFT', async(accounts) => {
                 Array(versionOneAttributesAmount).fill(Array(4).fill("aaaa")),
                 Array(versionOneAttributesAmount).fill(Array(4).fill(rarity.UNCOMMON)),
                 Array(versionOneAttributesAmount).fill(exampleCID1),
+                CORE_ATTRIBUTES,
                 {from: owner})
         )
         // empty generator script
@@ -106,6 +110,7 @@ contract('HugoNFT', async(accounts) => {
                 Array(versionOneAttributesAmount).fill(Array(4).fill("aaaa")),
                 Array(versionOneAttributesAmount).fill(Array(4).fill(rarity.UNCOMMON)),
                 Array(versionOneAttributesAmount).fill(exampleCID1),
+                CORE_ATTRIBUTES,
                 {from: owner})
         )
         // disproportion in attributes and traits input data lengths
@@ -118,6 +123,7 @@ contract('HugoNFT', async(accounts) => {
                 Array(versionOneAttributesAmount).fill(Array(4).fill("aaaa")),
                 Array(versionOneAttributesAmount).fill(Array(4).fill(rarity.UNCOMMON)),
                 Array(versionOneAttributesAmount).fill(exampleCID1),
+                CORE_ATTRIBUTES,
                 {from: owner})
         )
         await expectThrow(
@@ -129,6 +135,26 @@ contract('HugoNFT', async(accounts) => {
                 Array(6).fill(Array(4).fill("aaaa")),
                 Array(versionOneAttributesAmount).fill(Array(4).fill(rarity.UNCOMMON)),
                 Array(versionOneAttributesAmount).fill(exampleCID1),
+                CORE_ATTRIBUTES,
+                {from: owner})
+        )
+        // empty attribute name
+        await expectThrow(
+            HugoNFT.new(
+                tokenURI,
+                versionOneAttributesAmount,
+                "script-attrs-5",
+                Array(versionOneAttributesAmount).fill(3),
+                [
+                    Array(3).fill("Head trait"),
+                    Array(3).fill("Glasses trait"),
+                    Array(3).fill("Body trait"),
+                    Array(3).fill("Shirt trait"),
+                    Array(3).fill("Scarf trait")
+                ],
+                Array(versionOneAttributesAmount).fill(Array(3).fill(rarity.UNCOMMON)),
+                Array(versionOneAttributesAmount).fill(exampleCID1),
+                ["HEAD", "GLASSES", "BODY", "SHIRT", ""],
                 {from: owner})
         )
 
@@ -146,6 +172,7 @@ contract('HugoNFT', async(accounts) => {
             ],
             Array(versionOneAttributesAmount).fill(Array(3).fill(rarity.UNCOMMON)),
             Array(versionOneAttributesAmount).fill(exampleCID1),
+            CORE_ATTRIBUTES,
             {from: owner});
 
         // Granting roles
@@ -420,6 +447,7 @@ contract('HugoNFT', async(accounts) => {
             // invalid access
             await expectThrow(
                 nftContract.addNewAttributeWithTraits(
+                    "EYE",
                     3,
                     Array(3).fill("Eyes trait"),
                     Array(3).fill(rarity.UNCOMMON),
@@ -429,6 +457,7 @@ contract('HugoNFT', async(accounts) => {
                 )
             )
             await nftContract.addNewAttributeWithTraits(
+                "eye",
                 3,
                 Array(3).fill("Eyes trait"),
                 [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
@@ -471,6 +500,7 @@ contract('HugoNFT', async(accounts) => {
 
         it("minting with a one more attribute to test gaps in seed", async() => {
             await nftContract.addNewAttributeWithTraits(
+                "background",
                 3,
                 Array(3).fill("Background trait"),
                 [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
@@ -957,6 +987,20 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(script1, "script-attrs-5");
             assert.equal(script2, "script-attrs-6");
             assert.equal(script3, "script-attrs-7");
+        })
+
+        it("should properly show attribute data", async() => {
+            let body = await nftContract.getAttributeData(BODY_ID);
+            let eye = await nftContract.getAttributeData(EYE_ID);
+            let background = await nftContract.getAttributeData(BACKGROUND_ID);
+
+            assert.equal(body.attributeId, BODY_ID);
+            assert.equal(eye.attributeId, EYE_ID);
+            assert.equal(background.attributeId, BACKGROUND_ID);
+
+            assert.equal(body.name, "body");
+            assert.equal(eye.name, "eye");
+            assert.equal(background.name, "background");
         })
     })
 })

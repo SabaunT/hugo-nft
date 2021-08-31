@@ -1,9 +1,6 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
-/** todo
- * 1. AttributeStruct
- */
 contract HugoNFTTypes {
     enum Rarity{COMMON, UNCOMMON, RARE, LEGENDARY}
 
@@ -29,5 +26,10 @@ contract HugoNFTTypes {
         string cid;
         // index in _tokenIdsOfAddress[ownerOfNFT] array
         uint256 index;
+    }
+
+    struct Attribute {
+        uint256 attributeId;
+        string name;
     }
 }

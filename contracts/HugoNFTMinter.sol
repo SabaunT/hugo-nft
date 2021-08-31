@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import "./HugoNFTMetadataManager.sol";
 
 abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
-    event Mint(address indexed to, uint256 indexed tokenId, string name);
+    event Mint(address indexed to, uint256 indexed tokenId, string name, string description);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
 
@@ -48,7 +48,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         _NFTs[newTokenId] = NFT(newTokenId, name, description, seed, "", idInArrayOfIds);
         _isUsedSeed[seedHash] = true;
 
-        emit Mint(to, newTokenId, name);
+        emit Mint(to, newTokenId, name, description);
     }
 
     function mintExclusive(
@@ -85,7 +85,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         tIdsOfA.push(newTokenId);
         _NFTs[newTokenId] = NFT(newTokenId, name, description, new uint256[](0), cid, idInArrayOfIds);
 
-        emit Mint(to, newTokenId, name);
+        emit Mint(to, newTokenId, name, description);
     }
 
     function changeNFTName(uint256 tokenId, string calldata name)

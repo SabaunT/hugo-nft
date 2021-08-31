@@ -37,6 +37,10 @@ contract HugoNFTStorage is HugoNFTTypes {
     // Script that is used to generate NFTs from traits
     string[] internal nftGenerationScripts;
 
+    // attribute id => attribute struct
+    // todo discuss getting attrs by name: https://ethereum.stackexchange.com/questions/82854/function-to-check-string-is-only-formed-by-lowercase-letters
+    mapping(uint256 => Attribute) internal _attributes;
+
     // address => token ids of the address
     // there is no order guaranteed
     mapping(address => uint256[]) internal _tokenIdsOfAddress;
