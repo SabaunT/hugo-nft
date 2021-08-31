@@ -9,11 +9,10 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-3. error model
-4. questions:
+1. questions:
 - script update -> yes, when attribute added
 - events needed - да и подробнее, чтобы можно было восстановить стейт
-5. audit (+refactor) and test refactor
+2. audit (+refactor) and test refactor
 */
 
 // This contract mainly stores view functions
@@ -49,8 +48,8 @@ contract HugoNFT is HugoNFTMinter {
 
         _baseTokenURI = baseTokenURI;
         minAttributesAmount = initialAmountOfAttributes;
-        attributesAmount = initialAmountOfAttributes;
-        nftGenerationScripts.push(Script(script, true));
+        currentAttributesAmount = initialAmountOfAttributes;
+        nftGenerationScripts.push(script);
 
         // Very important to set them in constructor,
         // because otherwise contract should be paused until all
@@ -66,6 +65,19 @@ contract HugoNFT is HugoNFTMinter {
         }
     }
 
+    function getGenerationScriptForAttributesNum(uint256 attributesNum)
+        external
+        view
+        returns (string memory)
+    {
+        require(
+            attributesNum >= minAttributesAmount &&
+            attributesNum <= currentAttributesAmount,
+            "HugoNFT::script for invalid num of attributes requested"
+        );
+        return nftGenerationScripts[attributesNum - minAttributesAmount];
+    }
+
     function generatedNFTsAmount() external view returns (uint256) {
         return _getGeneratedHugoAmount();
     }
@@ -75,7 +87,7 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (string[] memory)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
         return _CIDsOfAttribute[attributeId];
     }
 
@@ -84,7 +96,7 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (Trait[] memory)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
         return _traitsOfAttribute[attributeId];
     }
 
@@ -93,7 +105,7 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (Trait[] memory)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
 
         Trait[] storage tOA = _traitsOfAttribute[attributeId];
 
@@ -165,7 +177,7 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (string memory)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
         require(
             traitId != 0,
             "HugoNFT::0 trait id is reserved for 'no attribute' in seed"
@@ -181,8 +193,8 @@ contract HugoNFT is HugoNFTMinter {
     }
 
     function validCIDs() public view returns (string[] memory) {
-        string[] memory retCIDs = new string[](attributesAmount);
-        for (uint256 i = 0; i < attributesAmount; i++) {
+        string[] memory retCIDs = new string[](currentAttributesAmount);
+        for (uint256 i = 0; i < currentAttributesAmount; i++) {
             string[] storage aCIDs = _CIDsOfAttribute[i];
             // Length 0 is impossible, because from the deployment
             // NFT has CIDs for its attributes
@@ -201,9 +213,9 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (uint256[] memory)
     {
-        if (seed.length == attributesAmount) return seed;
-        uint256[] memory standardizedSeed = new uint256[](attributesAmount);
-        for (uint256 i = 0; i < attributesAmount; i++) {
+        if (seed.length == currentAttributesAmount) return seed;
+        uint256[] memory standardizedSeed = new uint256[](currentAttributesAmount);
+        for (uint256 i = 0; i < currentAttributesAmount; i++) {
             standardizedSeed[i] = i > seed.length - 1 ? 0 : seed[i];
         }
         return standardizedSeed;

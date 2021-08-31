@@ -179,8 +179,9 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
     }
 
     // Checks seed length, validity of trait ids and whether it was used
+    // todo discuss error return
     function _isValidSeed(uint256[] calldata seed) internal view returns (bool) {
-        if (seed.length > attributesAmount || seed.length < minAttributesAmount) {
+        if (seed.length > currentAttributesAmount || seed.length < minAttributesAmount) {
             return false;
         }
         return _areValidTraitIds(seed);

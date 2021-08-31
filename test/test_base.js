@@ -60,6 +60,7 @@ contract('HugoNFT', async(accounts) => {
     const tokenURI = "someURI";
     const versionOneAttributesAmount = 5;
     const versionTwoAttributesAmount = 6;
+    const versionThreeAttributesAmount = 7;
 
     const zeroAddress = "0x0000000000000000000000000000000000000000";
     const exampleCID1 = "QmbWqxBEKC3P8tqsKc98xmWNzrzDtRLMiMPL8wBuTGsMnR";
@@ -134,7 +135,7 @@ contract('HugoNFT', async(accounts) => {
         nftContract = await HugoNFT.new(
             tokenURI,
             versionOneAttributesAmount,
-            "some python script",
+            "script-attrs-5",
             Array(versionOneAttributesAmount).fill(3),
             [
                 Array(3).fill("Head trait"),
@@ -423,6 +424,7 @@ contract('HugoNFT', async(accounts) => {
                     Array(3).fill("Eyes trait"),
                     Array(3).fill(rarity.UNCOMMON),
                     exampleCID2,
+                    "script2",
                     {from: minter}
                 )
             )
@@ -431,10 +433,11 @@ contract('HugoNFT', async(accounts) => {
                 Array(3).fill("Eyes trait"),
                 [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
                 exampleCID2,
+                "script-attrs-6",
                 {from: nft_admin}
             )
             let traitsOfEyeAttribute = await nftContract.getTraitsOfAttribute(EYE_ID);
-            let attributesAmount = await nftContract.attributesAmount();
+            let attributesAmount = await nftContract.currentAttributesAmount();
 
             assert.equal(traitsOfEyeAttribute.length, 3);
             assert.equal(attributesAmount.toNumber(), versionTwoAttributesAmount);
@@ -472,6 +475,7 @@ contract('HugoNFT', async(accounts) => {
                 Array(3).fill("Background trait"),
                 [rarity.COMMON, rarity.UNCOMMON, rarity.RARE],
                 exampleCID1,
+                "script-attrs-7",
                 {from: nft_admin}
             )
 
@@ -896,7 +900,7 @@ contract('HugoNFT', async(accounts) => {
             nfts1.slice(3).every(nft => assert.equal(nft.name, ""));
             // Generated ones have 0 length cid
             nfts1.slice(0, 3).every(nft => {
-                assert.equal(nft.seed.length, 7)
+                assert.equal(nft.seed.length, versionThreeAttributesAmount)
                 assert.equal(nft.cid.length, 0)
             })
 
@@ -914,7 +918,7 @@ contract('HugoNFT', async(accounts) => {
             let nft5 = await nftContract.getNFT(5);
             let nft9 = await nftContract.getNFT(9);
 
-            assert.equal(nft1.seed.length, 7);
+            assert.equal(nft1.seed.length, versionThreeAttributesAmount);
             assert.ok(nft1.seed.length == nft5.seed.length && nft5.seed.length == nft9.seed.length)
         })
 
@@ -935,6 +939,24 @@ contract('HugoNFT', async(accounts) => {
             assert.equal("ipfs://".concat(exampleCID1, "/", "3"), trait1Address);
             let trait2Address = await nftContract.traitIpfsPath(EYE_ID, 1);
             assert.equal("ipfs://".concat(exampleCID2, "/", "1"), trait2Address);
+        })
+
+        it("should properly show script", async() => {
+            // too small amount of attributes
+            await expectThrow(
+                nftContract.getGenerationScriptForAttributesNum(4)
+            )
+            // huge amount of attributes
+            await expectThrow(
+                nftContract.getGenerationScriptForAttributesNum(8)
+            )
+            let script1 = await nftContract.getGenerationScriptForAttributesNum(versionOneAttributesAmount);
+            let script2 = await nftContract.getGenerationScriptForAttributesNum(versionTwoAttributesAmount);
+            let script3 = await nftContract.getGenerationScriptForAttributesNum(versionThreeAttributesAmount);
+
+            assert.equal(script1, "script-attrs-5");
+            assert.equal(script2, "script-attrs-6");
+            assert.equal(script3, "script-attrs-7");
         })
     })
 })

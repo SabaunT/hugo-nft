@@ -15,7 +15,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     uint256 public exclusiveNFTsAmount;
 
     // amount of attributes used to generate NFT
-    uint256 public attributesAmount;
+    uint256 public currentAttributesAmount;
 
     // Available to mint amount of auto-generated NFTs.
     uint256 public constant generatedHugoCap = 10000;
@@ -35,7 +35,7 @@ contract HugoNFTStorage is HugoNFTTypes {
     uint256 internal minAttributesAmount;
 
     // Script that is used to generate NFTs from traits
-    Script[] internal nftGenerationScripts;
+    string[] internal nftGenerationScripts;
 
     // address => token ids of the address
     // there is no order guaranteed

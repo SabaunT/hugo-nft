@@ -11,20 +11,22 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name);
     event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
 
-    // todo update script with a new attribute
     function addNewAttributeWithTraits(
         uint256 amountOfTraits,
         string[] calldata names,
         Rarity[] calldata rarities,
-        string calldata cid
+        string calldata cid,
+        string calldata newGenerationScript
     )
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
-        uint256 newAttributeId = attributesAmount;
-        attributesAmount += 1;
+        uint256 newAttributeId = currentAttributesAmount;
+        currentAttributesAmount += 1;
 
         addTraits(newAttributeId, amountOfTraits, names, rarities, cid);
+
+        nftGenerationScripts.push(newGenerationScript);
 
         emit AddNewAttribute(newAttributeId);
     }
@@ -36,7 +38,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
-            CIDs.length == attributesAmount,
+            CIDs.length == currentAttributesAmount,
             "HugoNFT::invalid cids array length"
         );
         for (uint256 i = 0; i < CIDs.length; i++) {
@@ -89,7 +91,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         public
         onlyRole(NFT_ADMIN_ROLE)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
         require(
             bytes(ipfsCID).length == IPFS_CID_BYTES_LENGTH,
             "HugoNFT::invalid ipfs CID length"
@@ -109,7 +111,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         private
         onlyRole(NFT_ADMIN_ROLE)
     {
-        require(attributeId < attributesAmount, "HugoNFT::invalid attribute id");
+        require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
         // This kind of check has 2 pros:
         // 1. could check whether the id is valid by comparing it with array length
         // 2. trait id also tells about its position in Traits[]
