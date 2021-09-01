@@ -78,6 +78,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
             CIDs.length == currentAttributesAmount,
             "HugoNFT::invalid CIDs array length"
         );
+
         for (uint256 i = 0; i < CIDs.length; i++) {
             // empty CID string - don't update attributes CID data
             if (bytes(CIDs[i]).length == 0) continue;

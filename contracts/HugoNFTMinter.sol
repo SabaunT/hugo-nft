@@ -114,7 +114,14 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         emit Mint(to, newTokenId, name, description);
     }
 
-    // todo AUDIT!
+    /**
+     * @dev Changes name of the NFT with provided tokenId.
+     *
+     * Requirements:
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * - `tokenId` should be an Id of existing NFT
+     * - `name` shouldn't be empty or larger than 75 bytes
+     */
     function changeNFTName(uint256 tokenId, string calldata name)
         external
         onlyRole(NFT_ADMIN_ROLE)
@@ -124,12 +131,20 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
             bytes(name).length > 0 && bytes(name).length <= 75,
             "HugoNFT::invalid NFT name length"
         );
+
         _NFTs[tokenId].name = name;
 
         emit ChangeName(tokenId, name);
     }
 
-    // todo AUDIT!
+    /**
+     * @dev Changes description of the NFT with provided tokenId.
+     *
+     * Requirements:
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * - `tokenId` should be an Id of existing NFT
+     * - `description` shouldn't be empty or larger than 300 bytes
+     */
     function changeNFTDescription(uint256 tokenId, string calldata description)
         external
         onlyRole(NFT_ADMIN_ROLE)
@@ -157,7 +172,22 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         return super.supportsInterface(interfaceId);
     }
 
-    // todo AUDIT!
+    /**
+     * @dev Hook that is called before any token transfer. This includes minting
+     * and burning.
+     *
+     * Calling conditions:
+     *
+     * - When `from` and `to` are both non-zero, ``from``'s `tokenId` will be
+     * transferred to `to`.
+     * - When `from` is zero, `tokenId` will be minted for `to`.
+     * - When `to` is zero, ``from``'s `tokenId` will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * Current implementation focuses only on transfers. If it's a transfer, we only
+     * have to check `from != address(0)`, because the check in {ERC721-_transfer}
+     * guarantees `to != address(0)`.
+     */
     function _beforeTokenTransfer(
         address from,
         address to,
@@ -168,26 +198,26 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
 
         // transferFrom was called
         if (from != address(0)) {
-            uint256[] storage tokenIdsFrom = _tokenIdsOfAccount[from];
-            uint256[] storage tokenIdsTo = _tokenIdsOfAccount[to];
+            uint256[] storage tokenIdsOfFrom = _tokenIdsOfAccount[from];
+            uint256[] storage tokenIdsOfTo = _tokenIdsOfAccount[to];
             NFT storage transferringNFT = _NFTs[tokenId];
 
-            uint256 lastIndexInIdsFrom = tokenIdsFrom.length - 1;
+            uint256 lastIndexInIdsFrom = tokenIdsOfFrom.length - 1;
             uint256 transferringTokenIndex = transferringNFT.index;
 
             if (transferringTokenIndex != lastIndexInIdsFrom) {
-                uint256 lastIdFrom = tokenIdsFrom[lastIndexInIdsFrom];
+                uint256 lastIdFrom = tokenIdsOfFrom[lastIndexInIdsFrom];
                 NFT storage lastNFTFrom = _NFTs[lastIdFrom];
 
-                tokenIdsFrom[transferringTokenIndex] = lastNFTFrom.tokenId;
+                tokenIdsOfFrom[transferringTokenIndex] = lastIdFrom;
                 lastNFTFrom.index = transferringTokenIndex;
             }
 
-            uint256 transferringTokenNewIndex = tokenIdsTo.length;
-            tokenIdsTo.push(tokenId);
+            uint256 transferringTokenNewIndex = tokenIdsOfTo.length;
+            tokenIdsOfTo.push(tokenId);
             transferringNFT.index = transferringTokenNewIndex;
 
-            tokenIdsFrom.pop();
+            tokenIdsOfFrom.pop();
         }
     }
 
