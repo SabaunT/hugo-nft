@@ -181,7 +181,7 @@ contract('HugoNFT', async(accounts) => {
     })
 
     describe("Managing attributes, traits and attributes CIDs", async() => {
-        it("updating attributes ipfs CID", async() => {
+        it("should fail updating multiple attributes CIDs ", async() => {
             let emptyCIDsData = Array(versionOneAttributesAmount).fill("");
             let invalidCIDLenData = Array(versionOneAttributesAmount).fill("12");
             // invalid access
@@ -196,6 +196,9 @@ contract('HugoNFT', async(accounts) => {
             await expectThrow(
                 nftContract.updateMultipleAttributesCIDs(invalidCIDLenData, {from: nft_admin})
             )
+        })
+
+        it("should correctly update multiple CIDs except for attributeId = 2", async() => {
             let validCIDsArray = Array(versionOneAttributesAmount).fill(exampleCID2);
             // let attribute id 2 CID be empty
             validCIDsArray[2] = "";
@@ -214,7 +217,7 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(validCIDAttr2, exampleCID1)
         })
 
-        it("changing CID for an attributeId 2", async() => {
+        it("should fail updating CID for attributeId =  2", async() => {
             // invalid access
             await expectThrow(
                 nftContract.updateAttributeCID(2, exampleCID2, {from: account3})
@@ -227,6 +230,9 @@ contract('HugoNFT', async(accounts) => {
             await expectThrow(
                 nftContract.updateAttributeCID(2, "someInvalidSeed", {from: nft_admin})
             )
+        })
+
+        it("should correctly update CID for attributeId = 2", async() => {
             await nftContract.updateAttributeCID(2, exampleCID2, {from: nft_admin})
 
             let CIDsOfAttrId2 = await nftContract.getCIDsOfAttribute(2);
@@ -236,7 +242,7 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(validCIDAttr2, exampleCID2)
         })
 
-        it("updating CIDs with an array of empty strings", async() => {
+        it("shouldn't change anything while updating CIDs with an array of empty strings", async() => {
             let emptyCIDsData = Array(versionOneAttributesAmount).fill("");
             await nftContract.updateMultipleAttributesCIDs(emptyCIDsData, {from: nft_admin});
 
@@ -245,7 +251,7 @@ contract('HugoNFT', async(accounts) => {
             assert.equal(attr0CIDs.length, 2);
         })
 
-        it("adding multiple traits", async() => {
+        it("should fail adding multiple traits", async() => {
             // invalid access
             await expectThrow(
                 nftContract.addTraits(
@@ -289,7 +295,9 @@ contract('HugoNFT', async(accounts) => {
                     {from: nft_admin}
                 )
             )
+        })
 
+        it("should add multiple traits for attributes", async() => {
             // Add multiple traits
             await nftContract.addTraits(
                 HEAD_ID,
@@ -348,7 +356,7 @@ contract('HugoNFT', async(accounts) => {
             assert.ok(equalLength);
         })
 
-        it("add traits by one", async() => {
+        it("should fail adding traits by one", async() => {
             // invalid attribute id
             await expectThrow(
                 nftContract.addTrait(5, 7, "TTT", rarity.LEGENDARY, exampleCID2, {from: nft_admin})
@@ -365,7 +373,9 @@ contract('HugoNFT', async(accounts) => {
             await expectThrow(
                 nftContract.addTrait(HEAD_ID, 7, "Classical Hat", rarity.UNCOMMON, exampleCID2, {from: account1})
             )
+        })
 
+        it("should add traits by one", async() => {
             await nftContract.addTrait(HEAD_ID, 7, "Classical Hat", rarity.LEGENDARY, exampleCID2, {from: nft_admin});
             await nftContract.addTrait(GLASSES_ID, 7,  "RayBan", rarity.LEGENDARY, exampleCID2, {from: nft_admin});
             await nftContract.addTrait(BODY_ID, 7, "Muscular", rarity.RARE, exampleCID2, {from: nft_admin});

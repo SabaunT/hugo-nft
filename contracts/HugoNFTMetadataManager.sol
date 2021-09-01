@@ -11,6 +11,24 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name, Rarity rarity);
     event UpdateAttributeCID(uint256 indexed attributeId, string ipfsCID);
 
+    /**
+     * @dev Adds a new attribute to NFT.
+     *
+     * Also should be provided attribute's traits, CID of the folder where the traits
+     * of the attribute are stored and a new generation script, which can generate NFTs
+     * with the added attribute.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-AddNewAttribute},
+     * 2. {HugoNFTMetadataManager-AddNewTrait},
+     * 3. {HugoNFTMetadataManager-UpdateAttributeCID}.
+     *
+     * Requirements:
+     * - `attributeName` shouldn't be an empty string
+     * - `newGenerationScript` shouldn't be an empty string
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * All the other requirements are defined in functions called inside the current one.
+     */
     function addNewAttributeWithTraits(
         string calldata attributeName,
         uint256 amountOfTraits,
@@ -22,6 +40,12 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
+        require(bytes(attributeName).length > 0, "HugoNFT::attribute name is empty");
+        require(
+            bytes(newGenerationScript).length > 0,
+            "HugoNFT::empty nft generation script provided"
+        );
+
         uint256 newAttributeId = currentAttributesAmount;
         currentAttributesAmount += 1;
 
@@ -32,22 +56,48 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         emit AddNewAttribute(newAttributeId, attributeName, newGenerationScript);
     }
 
-    // If for some attribute it wasn't intended to update the hash, then
-    // an empty string should be sent as an array member.
+    /**
+     * @dev Updates multiple attribute's CIDs.
+     *
+     * If for some attribute it wasn't intended to update the CID, then
+     * an empty string should be sent as an array member.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-UpdateAttributeCID}.
+     *
+     * Requirements:
+     * - `CIDs` length should be equal to current (actual) amount of attributes
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * All the other requirements are defined in functions called inside the current one.
+     */
     function updateMultipleAttributesCIDs(string[] calldata CIDs)
         external
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(
             CIDs.length == currentAttributesAmount,
-            "HugoNFT::invalid cids array length"
+            "HugoNFT::invalid CIDs array length"
         );
         for (uint256 i = 0; i < CIDs.length; i++) {
+            // empty CID string - don't update attributes CID data
             if (bytes(CIDs[i]).length == 0) continue;
             updateAttributeCID(i, CIDs[i]);
         }
     }
 
+    /**
+     * @dev The same as {HugoNFTMetadataManager-addTraitWithoutCID}, but updates CID.
+     *
+     * Trait ids in the attribute's traits data start from id = 1.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-AddNewTrait},
+     * 2. {HugoNFTMetadataManager-UpdateAttributeCID}.
+     *
+     * Requirements:
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * All the other requirements are defined in functions called inside the current one.
+     */
     function addTrait(
         uint256 attributeId,
         uint256 traitId,
@@ -62,6 +112,24 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         updateAttributeCID(attributeId, cid);
     }
 
+    /**
+     * @dev Adds new traits to the attribute.
+     *
+     * We don't define trait ids. Instead we define only the number of traits we want
+     * to add. Traits are added in a sequential order of their ids. So knowing
+     * 1) the amount of traits currently stored for the attribute and 2) amount of traits
+     * which is willed to add is enough to compute trait ids for new traits.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-AddNewTrait},
+     * 2. {HugoNFTMetadataManager-UpdateAttributeCID}.
+     *
+     * Requirements:
+     * - `amountOfTraits` shouldn't be more then {HugoNFTStorage-MAX_ADDING_TRAITS}
+     * - `amountOfTraits` should be equal to lengths of `names` and `rarities` arrays.
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     * All the other requirements are defined in functions called inside the current one.
+     */
     function addTraits(
         uint256 attributeId,
         uint256 amountOfTraits,
@@ -88,6 +156,17 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         updateAttributeCID(attributeId, cid);
     }
 
+    /**
+     * @dev Updates attribute's CID.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-UpdateAttributeCID}.
+     *
+     * Requirements:
+     * - `attributeId` should have an id of existent attribute
+     * - `ipfsCID` should have a proper length.
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     */
     function updateAttributeCID(uint256 attributeId, string memory ipfsCID)
         public
         onlyRole(NFT_ADMIN_ROLE)
@@ -103,6 +182,20 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
         emit UpdateAttributeCID(attributeId, ipfsCID);
     }
 
+    /**
+     * @dev Adds provided trait to the attribute.
+     *
+     * Trait ids in the attribute's traits data start from id = 1.
+     *
+     * Emits:
+     * 1. {HugoNFTMetadataManager-AddNewTrait}.
+     *
+     * Requirements:
+     * - `attributeId` should have an id of existent attribute
+     * - `traitId` should form a sequential order with already stored trait ids.
+     * - `name` string shouldn't be empty.
+     * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
+     */
     function addTraitWithoutCID(
         uint256 attributeId,
         uint256 traitId,

@@ -10,6 +10,7 @@ import "./HugoNFTMinter.sol";
 
 /** TODO
 1. audit (+refactor) and test refactor (discussions)
+2. readme
 */
 
 // This contract mainly stores view functions
@@ -51,7 +52,7 @@ contract HugoNFT is HugoNFTMinter {
         currentAttributesAmount = initialAmountOfAttributes;
         nftGenerationScripts.push(script);
 
-        for (uint256 i = 0; i < attributesNames.length; i++) {
+        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
             require(
                 bytes(attributesNames[i]).length > 0,
                 "HugoNFT::empty attribute name"

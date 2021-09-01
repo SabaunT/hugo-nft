@@ -20,8 +20,8 @@ contract HugoNFTTypes {
         uint256 tokenId;
         string name;
         string description;
-        // Seed is an array of trait ids.
-        // A 0 value of token id is reserved for "no attribute" in the seed array
+        // Seed is an array of trait ids. A 0 value of token id is reserved
+        // for "no attribute" in the seed array.
         uint256[] seed;
         string cid;
         // index in _tokenIdsOfAddress[ownerOfNFT] array
