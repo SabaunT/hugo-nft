@@ -9,8 +9,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-1. checklist
-2. discussions
+1. discussions
 2. readme
 */
 
@@ -78,6 +77,22 @@ contract HugoNFT is HugoNFTMinter {
                 CIDsForEachAttribute[i]
             );
         }
+    }
+
+    /**
+     * @dev Sets a new token URI
+     *
+     * Requirements:
+     * - `newURI` shouldn't be the same as the previous one, shouldn't be empty string.
+     */
+    function setTokenURI(string calldata newURI) external onlyRole(NFT_ADMIN_ROLE) {
+        require(bytes(newURI).length > 0, "HugoNFT::empty new URI string provided");
+        require(
+            keccak256(abi.encodePacked(newURI)) != keccak256(abi.encodePacked(_baseTokenURI)),
+            "HugoNFT::can't set same token URI"
+        );
+
+        _baseTokenURI = newURI;
     }
 
     /**
