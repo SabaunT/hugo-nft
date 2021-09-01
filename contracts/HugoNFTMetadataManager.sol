@@ -5,7 +5,10 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 
 import "./HugoNFTStorage.sol";
 
-// Management for attributes, traits and hashes - all are named as meta-data.
+/**
+ * @author SabaunT https://github.com/SabaunT.
+ * @dev Management for attributes, traits and CIDs - all are named as meta-data.
+ */
 contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
     event AddNewAttribute(uint256 indexed newAttributeId, string attributeName, string newScript);
     event AddNewTrait(uint256 indexed attributeId, uint256 indexed traitId, string name, Rarity rarity);

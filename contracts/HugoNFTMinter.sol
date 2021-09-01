@@ -235,7 +235,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      * 1. _getSeedHash([1,2,3,0,0]) == _getSeedHash([1,2,3])
      * 2. _getSeedHash([1,2,3,0,1]) == _getSeedHash([1,2,3,0,1]) != _getSeedHash([1,2,3,1])
      *
-     * Returns bytes32 result of calling keccak256 on the input seed.
+     * Returns a bytes32 result of calling keccak256 on the input seed.
      */
     function _getSeedHash(uint256[] calldata validSeed) internal view returns (bytes32) {
         uint256[] memory validSeedNoTrailingZeroes = _getWithoutTrailingZeroes(validSeed);
@@ -320,7 +320,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      * For this type of NFTs ids are defined from 0 to 9999.
      * All in all, 10'000 generated hugo NFTs.
      *
-     * Returns uint256 id number for a new auto-generative NFT
+     * Returns a uint256 id number for a new auto-generative NFT
      */
     function _getNewIdForGeneratedHugo() private view returns (uint256) {
         return _getGeneratedHugoAmount();
@@ -332,7 +332,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      * For this type of NFTs ids are defined from 10'000 and e.t.c.
      * There is no cap for such NFTs.
      *
-     * Returns uint256 id number for a new exclusive NFT
+     * Returns a uint256 id number for a new exclusive NFT
      */
     function _getNewIdForExclusiveHugo() private view returns (uint256) {
         return generatedHugoCap + exclusiveNFTsAmount;
@@ -345,7 +345,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      * adjusting the `end` index, from which all the trait ids of the input seed are 0.
      * When a non-zero values occurs, breaks the loop and returns `validSeed[:end]`
      *
-     * Returns array of seeds without trailing zeroes (from the right)
+     * Returns an array of seeds without trailing zeroes (from the right)
      */
     function _getWithoutTrailingZeroes(uint256[] calldata validSeed)
         private

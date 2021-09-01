@@ -1,6 +1,10 @@
 //SPDX-License-Identifier: MIT
 pragma solidity 0.8.7;
 
+/**
+ * @author SabaunT https://github.com/SabaunT.
+ * @dev Types used by HugoNFT project contracts
+ */
 contract HugoNFTTypes {
     enum Rarity{COMMON, UNCOMMON, RARE, LEGENDARY}
 

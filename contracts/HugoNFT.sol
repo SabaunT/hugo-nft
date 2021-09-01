@@ -9,11 +9,17 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-1. audit (+refactor), checklist and test refactor (discussions)
+1. checklist
+2. discussions
 2. readme
 */
 
-// This contract mainly stores view functions
+/**
+ * @author SabaunT https://github.com/SabaunT.
+ * @dev The main contract which inherits minting and metadata management logic.
+ *
+ * This contract is mainly "focused" on view functions.
+ */
 contract HugoNFT is HugoNFTMinter {
     using Strings for uint256;
 
@@ -74,6 +80,9 @@ contract HugoNFT is HugoNFTMinter {
         }
     }
 
+    /**
+     * @dev Returns a {HugoNFTTypes-Attribute} struct with data for `attributeId`.
+     */
     function getAttributeData(uint256 attributeId)
         external
         view
@@ -83,6 +92,21 @@ contract HugoNFT is HugoNFTMinter {
         return _attributes[attributeId];
     }
 
+    /**
+     * @dev Gets script actual for `attributesNum` number of attributes
+     *
+     * It is always better to request the latest version of the script, because
+     * it can work with all the attributes. Anyway, the requested script should work
+     * for at least `x+1` attributes, where `x` is the index of the last non-zero
+     * trait id in the seed.
+     * So, for a seed [1,1,1,2,2,0,0,3,0,0] you should request script for at least
+     * 8 attributes.
+     *
+     * Requirements:
+     * - `attributesNum` is gte `minAttributesAmount` and lte `currentAttributesAmount`
+     *
+     * Returns a utf-8 string of the script
+     */
     function getGenerationScriptForAttributesNum(uint256 attributesNum)
         external
         view
@@ -96,10 +120,21 @@ contract HugoNFT is HugoNFTMinter {
         return nftGenerationScripts[attributesNum - minAttributesAmount];
     }
 
+    /**
+     * @dev Returns an amount of auto-generated NFTs already minted.
+     */
     function generatedNFTsAmount() external view returns (uint256) {
         return _getGeneratedHugoAmount();
     }
 
+    /**
+     * @dev Gets CIDs array for an `attributeId`
+     *
+     * Requirements:
+     * - `attributeId` belongs to interval [0; currentAttributesAmount)
+     *
+     * Returns an array of utf-8 IPFS CID strings
+     */
     function getCIDsOfAttribute(uint256 attributeId)
         external
         view
@@ -109,6 +144,14 @@ contract HugoNFT is HugoNFTMinter {
         return _CIDsOfAttribute[attributeId];
     }
 
+    /**
+     * @dev Gets traits array for an `attributeId`
+     *
+     * Requirements:
+     * - `attributeId` belongs to interval [0; currentAttributesAmount)
+     *
+     * Returns an array of {HugoNFTType-Trait}s
+     */
     function getTraitsOfAttribute(uint256 attributeId)
         external
         view
@@ -118,6 +161,19 @@ contract HugoNFT is HugoNFTMinter {
         return _traitsOfAttribute[attributeId];
     }
 
+    /**
+     * @dev Gets traits array for an `attributeId` with requested `rarity`
+     *
+     * We don't know the amount of such traits in advance, so we have to initialize
+     * a max array for such traits. Obviously, it's O(_traitsOfAttribute[attributeId].length).
+     *
+     * After we found all such traits we put them into returning array with a proper length.
+     *
+     * Requirements:
+     * - `attributeId` belongs to interval [0; currentAttributesAmount)
+     *
+     * Returns an array of {HugoNFTType-Trait}s with the requested `rarity`
+     */
     function getTraitsWithRarityByAttribute(uint256 attributeId, Rarity rarity)
         external
         view
@@ -150,6 +206,9 @@ contract HugoNFT is HugoNFTMinter {
         return ret;
     }
 
+    /**
+     * @dev Returns an array of token ids owned by `account`.
+     */
     function tokenIdsOfOwner(address account)
         external
         view
@@ -158,11 +217,19 @@ contract HugoNFT is HugoNFTMinter {
         return _tokenIdsOfAccount[account];
     }
 
+    /**
+     * @dev Checks whether the provided `seed` is used.
+     *
+     * For more info concerning logic and requirements read {HugoNFTMinter-_isValidSeed}
+     *
+     * Returns true if `seed` is used, otherwise - false.
+     */
     function isUsedSeed(uint256[] calldata seed) external view returns (bool) {
         require(_isValidSeed(seed), "HugoNFT::an invalid seed was provided");
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
+    // Returns array of {HugoNFTType-NFT} structs, which have requested token ids.
     function getNFTs(uint256[] calldata tokenIds) external view returns (NFT[] memory) {
         NFT[] memory ret = new NFT[](tokenIds.length);
         for (uint256 i = 0; i < tokenIds.length; i++) {
@@ -172,6 +239,16 @@ contract HugoNFT is HugoNFTMinter {
         return ret;
     }
 
+    /**
+     * @dev Gets NFT with `tokenId`
+     *
+     * If it exists and it has an id in interval [0; 10000), then its seed will be
+     * standardized. For more info read {HugoNFT-_standardizeSeed}.
+     *
+     * If NFT doesn't exist, returns empty, zero initialized {HugoNFTType-NFT} struct.
+     *
+     * Returns a {HugoNFTType-NFT} struct with the `tokenId`
+     */
     function getNFT(uint256 tokenId)
         public
         view
@@ -190,6 +267,17 @@ contract HugoNFT is HugoNFTMinter {
         return retNFT;
     }
 
+    /**
+     * @dev Gets IPFS path to `traitId` of `attributeId`
+     *
+     * Requirements:
+     * - `attributeId` belongs to interval [0; currentAttributesAmount)
+     * - `traitId` should be present in array of traits for an attribute. Also
+     * it shouldn't be equal to 0, because 0 is reserved trait id for non-existent
+     * attribute in seed.
+     *
+     * Returns a utf-8 string of IPFS path to the requested trait.
+     */
     function traitIpfsPath(uint256 attributeId, uint256 traitId)
         external
         view
@@ -210,6 +298,11 @@ contract HugoNFT is HugoNFTMinter {
         return string(abi.encodePacked("ipfs://", attributeCID, "/", traitId.toString()));
     }
 
+    /**
+     * @dev Gets valid CIDs for all the attributes
+     *
+     * Returns last CIDs from the attributes CIDs arrays
+     */
     function validCIDs() public view returns (string[] memory) {
         string[] memory retCIDs = new string[](currentAttributesAmount);
         for (uint256 i = 0; i < currentAttributesAmount; i++) {
@@ -226,6 +319,18 @@ contract HugoNFT is HugoNFTMinter {
         return _baseTokenURI;
     }
 
+    /**
+     * @dev For a `seed` with a valid attributes amount different from `currentAttributesAmount`
+     * return a new one, which will have a `currentAttributesAmount` number of attributes
+     * but trait ids for added attributes will be zeros.
+     *
+     * For example, `currentAttributesAmount` = 8. Then:
+     * 1. _standardizeSeed([1,2,3,4,5]) -> [1,2,3,4,5,0,0,0]
+     * 2. _standardizeSeed([1,2,3,4,5,0,1]) -> [1,2,3,4,5,0,1,0]
+     *
+     * Returns a seed with amount of `currentAttributesAmount` attributes, but unchanged
+     * trait ids.
+     */
     function _standardizeSeed(uint256[] memory seed)
         private
         view
