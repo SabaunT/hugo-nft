@@ -1,7 +1,6 @@
 const HugoNFT = artifacts.require("HugoNFT");
 const { BN } = require('@openzeppelin/test-helpers');
 
-// todo check cap reached
 contract('HugoNFT', async(accounts) => {
     function range(size, startAt = 0) {
         return [...Array(size).keys()].map(i => i + startAt);
@@ -393,7 +392,9 @@ contract('HugoNFT', async(accounts) => {
     })
 
     describe("Minting tests", async() => {
-        it("should mint new generative nft", async() => {
+
+        // todo check cap reached
+        it("should fail minting generative nft", async() => {
             // invalid access
             await expectThrow(
                 nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", "some descr", {from: account1})
@@ -434,7 +435,9 @@ contract('HugoNFT', async(accounts) => {
             await expectThrow(
                 nftContract.mint(account1, [5, 5, 5, 5, 5], "some name", Array(302).join("a"), {from: minter})
             )
+        })
 
+        it("should mint generative nfts", async() => {
             // Mint 3 tokens
             await nftContract.mint(account1, [1, 1, 1, 1, 1], "John Coffey", "Like a drink, but it is written differently", {from: minter});
 
@@ -453,7 +456,7 @@ contract('HugoNFT', async(accounts) => {
             assertEqArrays([0,1,2], nftIdsOfAccount1)
         })
 
-        it("adding new attribute and minting", async() => {
+        it("should add new attribute and mint", async() => {
             // invalid access
             await expectThrow(
                 nftContract.addNewAttributeWithTraits(
@@ -586,6 +589,19 @@ contract('HugoNFT', async(accounts) => {
             assertEqArrays([10002], nftIdsOfAccount3);
             assert.equal(exclusivelyMinted.toNumber(), 3)
         })
+
+        it("should mint after generative NFTs with correct ids minting exclusive NFTs", async() => {
+            await nftContract.mint(minter, [3,3,3,3,3,3,3], "test", "test", {from: minter})
+            await nftContract.mint(nft_admin, [3,3,3,3,3,2], "test", "test", {from: minter})
+
+            let totalSupply = await nftContract.totalSupply();
+            let nftIdsOfMinter = await getTokenIdsOfAccount(minter);
+            let nftIdsOfAdmin = await getTokenIdsOfAccount(nft_admin);
+
+            assert.equal(totalSupply.toNumber(), 15);
+            assertEqArrays([10], nftIdsOfMinter);
+            assertEqArrays([11], nftIdsOfAdmin);
+        })
     })
 
     describe("Change nft name/description tests", async() => {
@@ -596,7 +612,7 @@ contract('HugoNFT', async(accounts) => {
             )
             // non existent token
             await expectThrow(
-                nftContract.changeNFTName(10, "new name", {from: nft_admin})
+                nftContract.changeNFTName(12, "new name", {from: nft_admin})
             )
             // empty string
             await expectThrow(
@@ -624,7 +640,7 @@ contract('HugoNFT', async(accounts) => {
             )
             // non existent token
             await expectThrow(
-                nftContract.changeNFTDescription(10, "new description", {from: nft_admin})
+                nftContract.changeNFTDescription(12, "new description", {from: nft_admin})
             )
             // empty string
             await expectThrow(
@@ -769,9 +785,9 @@ contract('HugoNFT', async(accounts) => {
             let exclusive = await nftContract.exclusiveNFTsAmount();
             let totalSupply = await nftContract.totalSupply();
 
-            assert.equal(generated.toNumber(), 10)
+            assert.equal(generated.toNumber(), 12)
             assert.equal(exclusive.toNumber(), 3)
-            assert.equal(totalSupply.toNumber(), 13)
+            assert.equal(totalSupply.toNumber(), 15)
         })
 
         it("should correctly view CIDs for an attribute", async() => {
@@ -936,7 +952,7 @@ contract('HugoNFT', async(accounts) => {
         })
 
         it("should properly return nfts array", async() => {
-            let nfts1 = await nftContract.getNFTs([0, 1, 2, 10, 11, 12, 231, 1212]);
+            let nfts1 = await nftContract.getNFTs([0, 1, 2, 12, 13, 14, 231, 1212]);
             nfts1.slice(3).every(nft => assert.equal(nft.name, ""));
             // Generated ones have 0 length cid
             nfts1.slice(0, 3).every(nft => {

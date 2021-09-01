@@ -9,7 +9,7 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 import "./HugoNFTMinter.sol";
 
 /** TODO
-1. audit (+refactor) and test refactor (discussions)
+1. audit (+refactor), checklist and test refactor (discussions)
 2. readme
 */
 
@@ -155,7 +155,7 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (uint256[] memory)
     {
-        return _tokenIdsOfAddress[account];
+        return _tokenIdsOfAccount[account];
     }
 
     function isUsedSeed(uint256[] calldata seed) external view returns (bool) {

@@ -164,7 +164,7 @@ contract HugoNFTMetadataManager is HugoNFTStorage, AccessControl {
      *
      * Requirements:
      * - `attributeId` should have an id of existent attribute
-     * - `ipfsCID` should have a proper length.
+     * - `ipfsCID` should have length of {HugoNFTStorage-IPFS_CID_BYTES_LENGTH}.
      * - `msg.sender` should have {HugoNFTStorage-NFT_ADMIN} role
      */
     function updateAttributeCID(uint256 attributeId, string memory ipfsCID)

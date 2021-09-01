@@ -53,7 +53,7 @@ contract HugoNFTStorage is HugoNFTTypes {
 
     // address => token ids of the address
     // *NOTE*: no order is guaranteed.
-    mapping(address => uint256[]) internal _tokenIdsOfAddress;
+    mapping(address => uint256[]) internal _tokenIdsOfAccount;
 
     // token id => generated hugo.
     mapping(uint256 => NFT) internal _NFTs;
