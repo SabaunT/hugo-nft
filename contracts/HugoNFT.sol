@@ -261,7 +261,7 @@ contract HugoNFT is HugoNFTMinter {
 
         string[] memory lastCIDs = validCIDs();
         string memory attributeCID = lastCIDs[attributeId];
-        return string(abi.encodePacked("ipfs://", attributeCID, "/", traitId.toString()));
+        return string(abi.encodePacked("ipfs://", attributeCID, "/", traitId.toString(), ".png"));
     }
 
     /**
