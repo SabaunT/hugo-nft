@@ -220,15 +220,11 @@ contract HugoNFT is HugoNFTMinter {
         view
         returns (NFT memory)
     {
-        NFT memory retNFT;
-        if (_tokenExists(tokenId)) {
-            retNFT = _NFTs[tokenId];
-            if (_isIdOfGeneratedNFT(tokenId)) {
-                retNFT.seed = _standardizeSeed(retNFT.seed);
-            }
-        } else {
-            // default NFT
-            retNFT = NFT(0, "", "", new uint256[](0), "", 0);
+        NFT memory retNFT = _NFTs[tokenId];
+        // Check for existence is introduced. because we should not standardize seed
+        // for non-existing NFT. Also, non-existing NFT passes the `_isIdOfGeneratedNFT` check.
+        if (_tokenExists(tokenId) && _isIdOfGeneratedNFT(tokenId)) {
+            retNFT.seed = _standardizeSeed(retNFT.seed);
         }
         return retNFT;
     }
