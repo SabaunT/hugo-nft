@@ -5,7 +5,9 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 import "./HugoNFTMetadataManager.sol";
 
-abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
+import "./IHugoNFT.sol";
+
+abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721, IHugoNFTMinter {
     event Mint(address indexed to, uint256 indexed tokenId, string name, string description);
     event ChangeName(uint256 indexed tokenId, string name);
     event ChangeDescription(uint256 indexed tokenId, string description);
@@ -32,6 +34,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         string calldata description
     )
         external
+        override
         onlyRole(MINTER_ROLE)
     {
         require(
@@ -84,6 +87,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
         string calldata cid
     )
         external
+        override
         onlyRole(MINTER_ROLE)
     {
         require(
@@ -124,6 +128,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      */
     function changeNFTName(uint256 tokenId, string calldata name)
         external
+        override
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");
@@ -147,6 +152,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      */
     function changeNFTDescription(uint256 tokenId, string calldata description)
         external
+        override
         onlyRole(NFT_ADMIN_ROLE)
     {
         require(_tokenExists(tokenId), "HugoNFT::nft with such id doesn't exist");

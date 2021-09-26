@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./HugoNFTMinter.sol";
+import "./IHugoNFT.sol";
 
 /**
  * @author SabaunT https://github.com/SabaunT.
@@ -14,78 +15,8 @@ import "./HugoNFTMinter.sol";
  *
  * This contract is mainly "focused" on view functions.
  */
-contract HugoNFT is HugoNFTMinter {
+abstract contract HugoNFTViewer is HugoNFTMinter, IHugoNFTViewer {
     using Strings for uint256;
-
-    // todo discuss Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
-    // todo discuss emitting events in constructor
-    constructor(
-        string memory baseTokenURI,
-        uint256 initialAmountOfAttributes,
-        string memory script,
-        // attributes and traits params
-        uint256[] memory traitAmountForEachAttribute,
-        string[][] memory traitNamesForEachAttribute,
-        string[] memory CIDsForEachAttribute,
-        string[] memory attributesNames
-    )
-        ERC721("HugoNFT", "HUGO")
-    {
-        require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
-        require(initialAmountOfAttributes > 0, "HugoNFT::initial attributes amount is 0");
-        require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
-        require(
-            (initialAmountOfAttributes == traitAmountForEachAttribute.length) &&
-            (initialAmountOfAttributes == traitNamesForEachAttribute.length) &&
-            (initialAmountOfAttributes == CIDsForEachAttribute.length) &&
-            (initialAmountOfAttributes == attributesNames.length),
-            "HugoNFT::disproportion in provided attributes and traits data"
-        );
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
-        _setupRole(NFT_ADMIN_ROLE, _msgSender());
-
-        _baseTokenURI = baseTokenURI;
-        minAttributesAmount = initialAmountOfAttributes;
-        currentAttributesAmount = initialAmountOfAttributes;
-        nftGenerationScripts.push(script);
-
-        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
-            require(
-                bytes(attributesNames[i]).length > 0,
-                "HugoNFT::empty attribute name"
-            );
-            _attributes[i] = Attribute(i, attributesNames[i]);
-        }
-
-        // Very important to set them in constructor,
-        // because otherwise contract should be paused until all
-        // attributes have their traits set
-        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
-            addTraits(
-                i,
-                traitAmountForEachAttribute[i],
-                traitNamesForEachAttribute[i],
-                CIDsForEachAttribute[i]
-            );
-        }
-    }
-
-    /**
-     * @dev Sets a new token URI
-     *
-     * Requirements:
-     * - `newURI` shouldn't be the same as the previous one, shouldn't be empty string.
-     */
-    function setTokenURI(string calldata newURI) external onlyRole(NFT_ADMIN_ROLE) {
-        require(bytes(newURI).length > 0, "HugoNFT::empty new URI string provided");
-        require(
-            keccak256(abi.encodePacked(newURI)) != keccak256(abi.encodePacked(_baseTokenURI)),
-            "HugoNFT::can't set same token URI"
-        );
-
-        _baseTokenURI = newURI;
-    }
 
     /**
      * @dev Returns a {HugoNFTTypes-Attribute} struct with data for `attributeId`.
@@ -117,6 +48,7 @@ contract HugoNFT is HugoNFTMinter {
     function getGenerationScriptForAttributesNum(uint256 attributesNum)
         external
         view
+        override
         returns (string memory)
     {
         require(
@@ -130,7 +62,7 @@ contract HugoNFT is HugoNFTMinter {
     /**
      * @dev Returns an amount of auto-generated NFTs already minted.
      */
-    function generatedNFTsAmount() external view returns (uint256) {
+    function generatedNFTsAmount() external view override returns (uint256) {
         return _getGeneratedHugoAmount();
     }
 
@@ -145,6 +77,7 @@ contract HugoNFT is HugoNFTMinter {
     function getCIDsOfAttribute(uint256 attributeId)
         external
         view
+        override
         returns (string[] memory)
     {
         require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
@@ -162,6 +95,7 @@ contract HugoNFT is HugoNFTMinter {
     function getTraitsOfAttribute(uint256 attributeId)
         external
         view
+        override
         returns (Trait[] memory)
     {
         require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
@@ -174,6 +108,7 @@ contract HugoNFT is HugoNFTMinter {
     function tokenIdsOfOwner(address account)
         external
         view
+        override
         returns (uint256[] memory)
     {
         return _tokenIdsOfAccount[account];
@@ -186,13 +121,18 @@ contract HugoNFT is HugoNFTMinter {
      *
      * Returns true if `seed` is used, otherwise - false.
      */
-    function isUsedSeed(uint256[] calldata seed) external view returns (bool) {
+    function isUsedSeed(uint256[] calldata seed) external view override returns (bool) {
         require(_isValidSeed(seed), "HugoNFT::an invalid seed was provided");
         return _isUsedSeed[_getSeedHash(seed)];
     }
 
     // Returns array of {HugoNFTType-NFT} structs, which have requested token ids.
-    function getNFTs(uint256[] calldata tokenIds) external view returns (NFT[] memory) {
+    function getNFTs(uint256[] calldata tokenIds)
+        external
+        view
+        override
+        returns (NFT[] memory)
+    {
         NFT[] memory ret = new NFT[](tokenIds.length);
         for (uint256 i = 0; i < tokenIds.length; i++) {
             uint256 tokenId = tokenIds[i];
@@ -214,6 +154,7 @@ contract HugoNFT is HugoNFTMinter {
     function getNFT(uint256 tokenId)
         public
         view
+        override
         returns (NFT memory)
     {
         NFT memory retNFT = _NFTs[tokenId];
@@ -239,6 +180,7 @@ contract HugoNFT is HugoNFTMinter {
     function traitIpfsPath(uint256 attributeId, uint256 traitId)
         external
         view
+        override
         returns (string memory)
     {
         require(attributeId < currentAttributesAmount, "HugoNFT::invalid attribute id");
@@ -300,5 +242,76 @@ contract HugoNFT is HugoNFTMinter {
             standardizedSeed[i] = i > seed.length - 1 ? 0 : seed[i];
         }
         return standardizedSeed;
+    }
+}
+
+contract HugoNFT is HugoNFTViewer {
+    // Deploying with 25 traits and 5 attributes requires gas usage of ~20000000
+    constructor(
+        string memory baseTokenURI,
+        uint256 initialAmountOfAttributes,
+        string memory script,
+        // attributes and traits params
+        uint256[] memory traitAmountForEachAttribute,
+        string[][] memory traitNamesForEachAttribute,
+        string[] memory CIDsForEachAttribute,
+        string[] memory attributesNames
+    )
+    ERC721("HugoNFT", "HUGO")
+    {
+        require(bytes(baseTokenURI).length > 0, "HugoNFT::empty new URI string provided");
+        require(initialAmountOfAttributes > 0, "HugoNFT::initial attributes amount is 0");
+        require(bytes(script).length > 0,"HugoNFT::empty nft generation script provided");
+        require(
+            (initialAmountOfAttributes == traitAmountForEachAttribute.length) &&
+            (initialAmountOfAttributes == traitNamesForEachAttribute.length) &&
+            (initialAmountOfAttributes == CIDsForEachAttribute.length) &&
+            (initialAmountOfAttributes == attributesNames.length),
+            "HugoNFT::disproportion in provided attributes and traits data"
+        );
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _msgSender());
+        _setupRole(NFT_ADMIN_ROLE, _msgSender());
+
+        _baseTokenURI = baseTokenURI;
+        minAttributesAmount = initialAmountOfAttributes;
+        currentAttributesAmount = initialAmountOfAttributes;
+        nftGenerationScripts.push(script);
+
+        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
+            require(
+                bytes(attributesNames[i]).length > 0,
+                "HugoNFT::empty attribute name"
+            );
+            _attributes[i] = Attribute(i, attributesNames[i]);
+        }
+
+        // Very important to set them in constructor,
+        // because otherwise contract should be paused until all
+        // attributes have their traits set
+        for (uint256 i = 0; i < initialAmountOfAttributes; i++) {
+            addTraits(
+                i,
+                traitAmountForEachAttribute[i],
+                traitNamesForEachAttribute[i],
+                CIDsForEachAttribute[i]
+            );
+        }
+    }
+
+    /**
+     * @dev Sets a new token URI
+     *
+     * Requirements:
+     * - `newURI` shouldn't be the same as the previous one, shouldn't be empty string.
+     */
+    function setTokenURI(string calldata newURI) external onlyRole(NFT_ADMIN_ROLE) {
+        require(bytes(newURI).length > 0, "HugoNFT::empty new URI string provided");
+        require(
+            keccak256(abi.encodePacked(newURI)) != keccak256(abi.encodePacked(_baseTokenURI)),
+            "HugoNFT::can't set same token URI"
+        );
+
+        _baseTokenURI = newURI;
     }
 }
