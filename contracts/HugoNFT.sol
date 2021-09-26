@@ -8,10 +8,6 @@ import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./HugoNFTMinter.sol";
 
-/** TODO
-1. discussions
-*/
-
 /**
  * @author SabaunT https://github.com/SabaunT.
  * @dev The main contract which inherits minting and metadata management logic.
