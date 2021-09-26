@@ -3,6 +3,7 @@ pragma solidity 0.8.7;
 
 import "./HugoNFTTypes.sol";
 
+// @dev Used as an interface
 abstract contract AbstractHugoNFT is HugoNFTTypes {
     //// ----------------------------------------------- \\\\
     //// ---------------- Minting logic ---------------- \\\\
