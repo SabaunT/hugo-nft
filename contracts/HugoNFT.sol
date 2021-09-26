@@ -7,7 +7,7 @@ import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 
 import "./HugoNFTMinter.sol";
-import "./IHugoNFT.sol";
+import "./interfaces/IHugoNFTViewer.sol";
 
 /**
  * @author SabaunT https://github.com/SabaunT.

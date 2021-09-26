@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
 import "./HugoNFTMetadataManager.sol";
 
-import "./IHugoNFT.sol";
+import "./interfaces/IHugoNFTMinter.sol";
 
 abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721, IHugoNFTMinter {
     event Mint(address indexed to, uint256 indexed tokenId, string name, string description);
