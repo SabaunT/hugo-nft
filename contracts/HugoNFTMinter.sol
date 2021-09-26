@@ -17,7 +17,7 @@ abstract contract HugoNFTMinter is HugoNFTMetadataManager, ERC721 {
      * of the NFT. The function is intended to be called by an NFT shop or owner
      * for a give away program.
      *
-     * Concerning seed validation and requirements for it inner structure, see todo link to nft storage notice comment
+     * Concerning seed validation and requirements for it inner structure, see https://github.com/SabaunT/hugo-nft/blob/master/contracts/HugoNFTStorage.sol#L8-L13
      * and {HugoNFTMinter-_isValidSeed} with {HugoNFTMinter-_isNewSeed}.
      *
      * Requirements:
