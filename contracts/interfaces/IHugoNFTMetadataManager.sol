@@ -15,11 +15,11 @@ interface IHugoNFTMetadataManager {
         string calldata cid,
         string calldata newGenerationScript
     )
-    external;
+        external;
 
     // @dev Updates multiple attribute's CIDs.
     function updateMultipleAttributesCIDs(string[] calldata CIDs)
-    external;
+        external;
 
     // @dev Adds a trait and updates CID.
     function addTrait(
@@ -28,7 +28,7 @@ interface IHugoNFTMetadataManager {
         string calldata name,
         string calldata cid
     )
-    external;
+        external;
 
     // @dev Adds new traits to the attribute.
     function addTraits(
@@ -37,9 +37,9 @@ interface IHugoNFTMetadataManager {
         string[] memory names,
         string memory cid
     )
-    external;
+        external;
 
     // @dev Updates attribute's CID.
     function updateAttributeCID(uint256 attributeId, string memory ipfsCID)
-    external;
+        external;
 }

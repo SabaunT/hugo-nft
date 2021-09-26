@@ -14,7 +14,7 @@ interface IHugoNFTMinter {
         string calldata name,
         string calldata description
     )
-    external;
+        external;
 
     // @dev Mints a new exclusive NFT for a `to` address.
     function mintExclusive(
@@ -23,13 +23,13 @@ interface IHugoNFTMinter {
         string calldata description,
         string calldata cid
     )
-    external;
+        external;
 
     // @dev Changes name of the NFT with provided tokenId.
     function changeNFTName(uint256 tokenId, string calldata name)
-    external;
+        external;
 
     // @dev Changes description of the NFT with provided tokenId.
     function changeNFTDescription(uint256 tokenId, string calldata description)
-    external;
+        external;
 }
