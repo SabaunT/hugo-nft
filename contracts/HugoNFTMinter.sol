@@ -20,6 +20,8 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
      * Concerning seed validation and requirements for it inner structure, see https://github.com/SabaunT/hugo-nft/blob/master/contracts/HugoNFTStorage.sol#L8-L13
      * and {HugoNFTMinter-_isValidSeed} with {HugoNFTMinter-_isNewSeed}.
      *
+     * Returns id of the newly generated NFT.
+     *
      * Requirements:
      * - `msg.sender` should have {HugoNFTStorage-MINTER_ROLE}
      * - `seed` should be valid
@@ -34,6 +36,7 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
         external
         override(AbstractHugoNFT)
         onlyRole(MINTER_ROLE)
+        returns (uint256 newTokenId)
     {
         require(
             _getGeneratedHugoAmount() < generatedHugoCap,
@@ -52,7 +55,7 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
             "HugoNFT::invalid NFT description length"
         );
 
-        uint256 newTokenId = _getNewIdForGeneratedHugo();
+        newTokenId = _getNewIdForGeneratedHugo();
         super._safeMint(to, newTokenId);
 
         totalSupply += 1;
@@ -65,6 +68,8 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
         _isUsedSeed[seedHash] = true;
 
         emit Mint(to, newTokenId, name, description);
+
+        return newTokenId;
     }
 
     /**
@@ -72,6 +77,8 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
      *
      * Mints an exclusive NFT, whose IPFS CID is defined under `cid` string.
      * Doesn't require any seeds.
+     *
+     * Returns id of the newly generated NFT.
      *
      * Requirements:
      * - `msg.sender` should have {HugoNFTStorage-MINTER_ROLE}
@@ -87,6 +94,7 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
         external
         override(AbstractHugoNFT)
         onlyRole(MINTER_ROLE)
+        returns (uint256 newTokenId)
     {
         require(
             bytes(name).length > 0 && bytes(name).length <= 75,
@@ -101,7 +109,7 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
             "HugoNFT::invalid ipfs CID length"
         );
 
-        uint256 newTokenId = _getNewIdForExclusiveHugo();
+        newTokenId = _getNewIdForExclusiveHugo();
         super._safeMint(to, newTokenId);
 
         totalSupply += 1;
@@ -114,6 +122,8 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
         _NFTs[newTokenId] = NFT(newTokenId, name, description, new uint256[](0), cid, idInArrayOfIds);
 
         emit Mint(to, newTokenId, name, description);
+
+        return newTokenId;
     }
 
     /**
