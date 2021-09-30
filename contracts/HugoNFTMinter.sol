@@ -276,11 +276,23 @@ abstract contract HugoNFTMinter is ERC721, HugoNFTAbstractImpl {
         return tokenId < generatedHugoCap;
     }
 
-    // If token doesn't exist, then it's id will have a default value, i.e. 0.
-    // Also its name will be an empty string.
+    /**
+     * @dev Checks whether token exists
+     *
+     * If token doesn't exist it will have zero length seed and zero length CID.
+     * Otherwise token will have either seed length being not equal to 0,
+     * or CID length being equal to {HugoNFTStorage-IPFS_CID_BYTES_LENGTH}.
+     *
+     * We could define such check for seed: `nft.seed.length >= minAttributesAmount`, but
+     * if constructor changes, then we can have a risk of this check becoming invalid. For example,
+     * if we get rid of setting value to {HugoNFTStorage-minAttributesAmount} in constructor during,
+     * say, refactoring, this check will be invalid.
+     *
+     * Return true if token with `tokenId` exists, otherwise returns false.
+     */
     function _tokenExists(uint256 tokenId) internal view returns (bool) {
         NFT storage nft = _NFTs[tokenId];
-        return nft.tokenId == tokenId && bytes(nft.name).length > 0;
+        return nft.seed.length != 0 || bytes(nft.cid).length == IPFS_CID_BYTES_LENGTH;
     }
 
     function _getGeneratedHugoAmount() internal view returns (uint256) {
