@@ -21,6 +21,8 @@ abstract contract HugoNFTMetadataManager is HugoNFTAbstractImpl {
      *
      * Requirements:
      * - `attributeId` should have an id of existent attribute
+     * - `traitId` should be > 0 and of valid range of ids of `attributeId`'s traits
+     * - `newName` shouldn't be empty
      */
     function changeTraitName(uint256 attributeId, uint256 traitId, string calldata newName)
         external
